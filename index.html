@@ -1,0 +1,2847 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Toilet-Fight</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        /* === БАЗОВЫЙ СБРОС И ГЛОБАЛЬНЫЕ СТИЛИ === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: 'Courier New', Courier, monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            max-height: 100%;
+            background: #87ceeb;
+            overflow: hidden;
+            border: none;
+            touch-action: none;
+        }
+        
+        /* === ВСЕ МЕНЮ === */
+        #menu, #game-over, #pause-menu, #shop-menu, #agents-menu, #enemies-info,
+        #reg-menu, #settings-menu, #mode-menu, #login-menu, #leaderboard-menu,
+        #tree-menu, #mode-info-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background: rgba(44, 62, 80, 0.95);
+            color: #00ffcc;
+            z-index: 100;
+            pointer-events: auto;
+            padding: 4vh 3vw;
+            box-sizing: border-box;
+            overflow-y: auto;
+            gap: 1.5vh;
+        }
+        #menu { display: flex; justify-content: flex-start; }
+        
+        #menu-content {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 1vh 1vw;
+            box-sizing: border-box;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1vh;
+        }
+        .menu-col {
+            display: flex;
+            flex-direction: column;
+            width: 28%;
+            min-width: 80px;
+            gap: 0.8vh;
+        }
+        .menu-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 35%;
+            min-width: 100px;
+            text-align: center;
+        }
+        
+        /* === КНОПКИ === */
+        button {
+            padding: 1.2vh 1vw;
+            margin: 0.4vh 0;
+            font-size: clamp(10px, 2.2vh, 18px);
+            cursor: pointer;
+            background: linear-gradient(135deg, #4a6fa5, #2c3e50);
+            color: #fff;
+            border: 2px solid #00ffcc;
+            border-radius: 0px;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 2px 2px 0px #000;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            white-space: nowrap;
+        }
+        button:hover { background: #3498db; border-color: #fff; }
+        button:active { background: #00ffcc; color: #000; transform: translateY(2px); box-shadow: none; }
+        
+        .agent-selected {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
+            border: 3px solid #76ff03 !important;
+            box-shadow: 0 0 15px #76ff03, inset 0 0 10px #a5d6a7 !important;
+            color: #ffffff !important;
+            text-shadow: 0 0 8px #76ff03;
+            transform: scale(1.02);
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .shake-animation { animation: shake 0.3s linear; }
+        
+        /* === HUD === */
+        #hud {
+            position: absolute;
+            top: 1.5vh;
+            left: 2vw;
+            width: auto;
+            z-index: 50;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6vh;
+            max-width: 45vw;
+        }
+        #hp-container {
+            width: 30vw;
+            max-width: 220px;
+            height: 2.5vh;
+            min-height: 18px;
+            background: #333;
+            border: 2px solid #fff;
+            position: relative;
+        }
+        #hp-bar {
+            height: 100%;
+            width: 100%;
+            background: #ff0000;
+            transition: width 0.3s;
+        }
+        #hp-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 2.5vh;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+            font-size: clamp(8px, 1.6vh, 14px);
+        }
+        
+        #hud-bottom {
+            display: flex;
+            align-items: flex-start;
+            gap: 1vw;
+            flex-wrap: wrap;
+        }
+        #minimap {
+            width: 20vw;
+            height: 20vw;
+            max-width: 150px;
+            max-height: 150px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid white;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #mapCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #stats-hud {
+            color: white;
+            font-size: clamp(9px, 1.8vh, 14px);
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+            background: rgba(0,0,0,0.5);
+            padding: 0.8vh 1vw;
+            border-radius: 5px;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2vh;
+        }
+        
+        #pause-btn {
+            position: absolute;
+            top: 1.5vh;
+            right: 2vw;
+            padding: 0.8vh 1.5vw;
+            z-index: 60;
+            cursor: pointer;
+            font-size: clamp(8px, 1.6vh, 14px);
+            background: linear-gradient(135deg, #4a6fa5, #2c3e50);
+            border: 2px solid #00ffcc;
+            color: white;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 2px 2px 0px #000;
+        }
+        
+        /* === УПРАВЛЕНИЕ === */
+        #controls-layout {
+            position: absolute;
+            bottom: 4vh;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 50;
+            pointer-events: none;
+            padding: 0 2vw;
+            box-sizing: border-box;
+        }
+        #controls-layout > * { pointer-events: auto; }
+        
+        #joystick-area {
+            width: 22vw;
+            height: 22vw;
+            max-width: 130px;
+            max-height: 130px;
+            min-width: 70px;
+            min-height: 70px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #joystick-knob {
+            width: 40%;
+            height: 40%;
+            background: rgba(255,255,255,0.6);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        #attack-btn, #force-field-btn, #core-eruption-btn, #dynamic-field-btn {
+            width: 16vw;
+            height: 16vw;
+            max-width: 80px;
+            max-height: 80px;
+            min-width: 50px;
+            min-height: 50px;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            font-size: clamp(8px, 1.6vh, 13px);
+            font-weight: bold;
+            text-align: center;
+            padding: 0.5vw;
+            word-break: break-word;
+            line-height: 1.2;
+        }
+        #attack-btn { background: #ff0000; }
+        #force-field-btn { background: #8b00ff; display: none; border-color: #aa44ff; }
+        #core-eruption-btn { background: #0044ff; display: none; border-color: #00aaff; }
+        #dynamic-field-btn { background: #ff8800; display: none; border-color: #ffcc00; }
+        
+        /* === ВВОД === */
+        input {
+            padding: 1vh 1vw;
+            font-size: clamp(12px, 2vh, 18px);
+            margin-bottom: 0.8vh;
+            width: 70%;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            max-width: 300px;
+        }
+        #player-name-display {
+            font-size: clamp(11px, 2vh, 16px);
+            margin-bottom: 0.5vh;
+        }
+        
+        /* === ДЕРЕВО ПРОКАЧЕК === */
+        .tree-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5vh;
+            margin-top: 1vh;
+            background: rgba(0,0,0,0.4);
+            padding: 2vh 2vw;
+            border-radius: 12px;
+            border: 2px solid #555;
+            width: 90%;
+            max-width: 400px;
+        }
+        .tree-row {
+            display: flex;
+            justify-content: center;
+            gap: 2vw;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        .tree-node {
+            width: 18vw;
+            height: 18vw;
+            max-width: 90px;
+            max-height: 90px;
+            min-width: 60px;
+            min-height: 60px;
+            font-size: clamp(8px, 1.4vh, 12px);
+            border-radius: 10px;
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            border: 2px solid #7f8c8d;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            flex-direction: column;
+            cursor: pointer;
+            transition: 0.2s;
+            padding: 2px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            word-break: break-word;
+        }
+        .tree-node:hover { border-color: #00ffcc; transform: scale(1.05); }
+        .tree-node.locked { border-color: #e74c3c; opacity: 0.6; }
+        .tree-connector-v { width: 2px; height: 2vh; background: #7f8c8d; }
+        
+        /* === БОСС-ЭЛЕМЕНТЫ === */
+        #boss-hp-container {
+            position: absolute;
+            top: 8vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50vw;
+            max-width: 250px;
+            height: 2.5vh;
+            min-height: 18px;
+            background: #333;
+            border: 2px solid #ffcc00;
+            z-index: 75;
+            display: none;
+            box-shadow: 0 0 20px rgba(255,204,0,0.3);
+            align-items: center;
+            justify-content: center;
+        }
+        #boss-hp-bar {
+            height: 100%;
+            width: 100%;
+            background: #ff0044;
+            transition: width 0.3s;
+            display: none;
+        }
+        #boss-hp-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 2.5vh;
+            color: white;
+            font-weight: bold;
+            font-size: clamp(8px, 1.6vh, 13px);
+            text-shadow: 1px 1px 2px black;
+            letter-spacing: 1px;
+        }
+        
+        #boss-warning {
+            position: absolute;
+            top: 11vh;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: clamp(10px, 2vh, 16px);
+            font-weight: bold;
+            z-index: 76;
+            pointer-events: none;
+            display: none;
+            text-align: center;
+            background: linear-gradient(135deg, #4a6fa5, #2c3e50);
+            padding: 0.8vh 2vw;
+            border: 2px solid #00ffcc;
+            box-shadow: 2px 2px 0px #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 0px;
+            min-width: 100px;
+            white-space: nowrap;
+        }
+        
+        /* === ЗАГРУЗОЧНЫЙ ЭКРАН === */
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #loading-overlay .loading-text {
+            font-size: clamp(18px, 4vh, 36px);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            border: 2px solid #00ffcc;
+            padding: 2vh 4vw;
+            background: rgba(0,0,0,0.5);
+            box-shadow: 0 0 30px rgba(0,255,204,0.3);
+        }
+        #loading-overlay .loading-bar {
+            width: 60vw;
+            max-width: 350px;
+            height: 0.8vh;
+            min-height: 4px;
+            background: #333;
+            margin-top: 2vh;
+            border: 1px solid #00ffcc;
+        }
+        #loading-overlay .loading-bar-inner {
+            height: 100%;
+            width: 0%;
+            background: #00ffcc;
+            transition: width 0.1s;
+        }
+        
+        /* === РЕЖИМЫ === */
+        .mode-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+            max-width: 350px;
+            gap: 0.8vh;
+        }
+        .mode-buttons .btn-row {
+            display: flex;
+            width: 100%;
+            gap: 1vw;
+        }
+        .mode-buttons .btn-row button { flex: 1; }
+        .mode-buttons .btn-row .info-btn {
+            flex: 0 0 10vw;
+            max-width: 55px;
+            background: #2c3e50;
+            border-color: #7f8c8d;
+            font-size: clamp(14px, 2.5vh, 22px);
+        }
+        .mode-buttons .btn-row .info-btn:hover {
+            background: #4a6fa5;
+            border-color: #00ffcc;
+        }
+        
+        #mode-info-menu p {
+            color: #fff;
+            font-size: clamp(12px, 1.8vh, 16px);
+            line-height: 1.6;
+            padding: 1.5vh 3vw;
+            background: rgba(0,0,0,0.4);
+            border-left: 3px solid #00ffcc;
+            margin: 1vh 0;
+            max-width: 90%;
+            text-align: left;
+            overflow-y: auto;
+            max-height: 40vh;
+        }
+        #mode-info-menu .info-title {
+            font-size: clamp(16px, 2.8vh, 24px);
+            color: #00ffcc;
+            font-weight: bold;
+            margin-bottom: 0.5vh;
+        }
+        
+        /* === ОВЕРЛЕЙ ЯДРА === */
+        #core-eruption-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,255,0);
+            pointer-events: none;
+            z-index: 45;
+            display: none;
+            transition: background 0.1s;
+        }
+        #core-eruption-overlay.active { display: block; }
+        
+        /* === АДАПТИВНЫЕ ЗАГОЛОВКИ === */
+        h1 {
+            font-size: clamp(18px, 4vh, 36px);
+            margin: 0.5vh 0;
+            text-align: center;
+            word-break: break-word;
+        }
+        #menu h1 { font-size: clamp(20px, 4.5vh, 40px); }
+        
+        /* === MEDIA QUERIES ДЛЯ МАЛЕНЬКИХ ЭКРАНОВ === */
+        @media (max-width: 480px) {
+            #joystick-area { width: 25vw; height: 25vw; min-width: 60px; min-height: 60px; }
+            #attack-btn, #force-field-btn, #core-eruption-btn, #dynamic-field-btn {
+                width: 20vw; height: 20vw; min-width: 45px; min-height: 45px;
+                font-size: clamp(6px, 1.4vh, 11px);
+            }
+            #hp-container { width: 40vw; height: 2.2vh; }
+            #minimap { width: 25vw; height: 25vw; max-width: 120px; max-height: 120px; }
+            #stats-hud { font-size: clamp(7px, 1.4vh, 12px); padding: 0.5vh 1.5vw; }
+            .menu-col { width: 30%; min-width: 60px; }
+            .menu-center { width: 40%; min-width: 70px; }
+            button { font-size: clamp(8px, 1.6vh, 12px); padding: 0.8vh 1.5vw; }
+            #boss-hp-container { width: 60vw; }
+            #boss-warning { font-size: clamp(8px, 1.4vh, 12px); padding: 0.5vh 2vw; min-width: 70px; }
+            .tree-node { width: 22vw; height: 22vw; min-width: 50px; min-height: 50px; font-size: clamp(6px, 1.2vh, 10px); }
+            .mode-buttons { width: 90%; }
+            .mode-buttons .btn-row .info-btn { flex: 0 0 12vw; max-width: 45px; font-size: clamp(12px, 2vh, 18px); }
+        }
+        
+        @media (max-height: 600px) {
+            #hud { top: 0.8vh; }
+            #hp-container { height: 2vh; min-height: 14px; }
+            #hp-text { line-height: 2vh; font-size: clamp(7px, 1.2vh, 11px); }
+            #stats-hud { font-size: clamp(7px, 1.2vh, 11px); padding: 0.3vh 1vw; }
+            #pause-btn { font-size: clamp(7px, 1.2vh, 11px); padding: 0.4vh 1vw; }
+            #controls-layout { bottom: 2vh; }
+            #joystick-area { width: 18vh; height: 18vh; min-width: 50px; min-height: 50px; }
+            #attack-btn, #force-field-btn, #core-eruption-btn, #dynamic-field-btn {
+                width: 14vh; height: 14vh; min-width: 40px; min-height: 40px;
+                font-size: clamp(6px, 1.2vh, 10px);
+            }
+            .tree-node { width: 14vh; height: 14vh; min-width: 45px; min-height: 45px; }
+            #boss-hp-container { top: 6vh; height: 2vh; min-height: 14px; }
+            #boss-warning { top: 8.5vh; font-size: clamp(8px, 1.2vh, 12px); padding: 0.3vh 1.5vw; }
+        }
+        
+        @media (orientation: landscape) and (max-height: 500px) {
+            #controls-layout { bottom: 1vh; }
+            #joystick-area { width: 15vh; height: 15vh; }
+            #attack-btn, #force-field-btn, #core-eruption-btn, #dynamic-field-btn {
+                width: 12vh; height: 12vh;
+            }
+            #hud { top: 0.5vh; }
+            #hp-container { height: 1.8vh; }
+            #minimap { width: 15vh; height: 15vh; }
+            #stats-hud { font-size: clamp(6px, 1vh, 10px); }
+            button { font-size: clamp(7px, 1.2vh, 11px); padding: 0.4vh 1vw; }
+            .mode-buttons .btn-row .info-btn { flex: 0 0 8vw; max-width: 40px; }
+            #boss-hp-container { top: 5vh; }
+            #boss-warning { top: 7vh; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="core-eruption-overlay"></div>
+    <div id="boss-hp-container"><div id="boss-hp-bar"></div><div id="boss-hp-text">БОСС: 100%</div></div>
+    <div id="boss-warning"></div>
+    
+    <div id="loading-overlay">
+        <div class="loading-text">ЗАГРУЗКА</div>
+        <div class="loading-bar"><div class="loading-bar-inner" id="loading-bar-inner"></div></div>
+    </div>
+    
+    <div id="reg-menu">
+        <h1>РЕГИСТРАЦИЯ</h1>
+        <form id="regForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <input type="text" id="regName" placeholder="Имя..." required>
+            <input type="password" id="regPass" placeholder="Пароль..." required>
+            <button type="submit" onclick="window.playClick()">СОЗДАТЬ</button>
+        </form>
+        <button onclick="window.playClick(); document.getElementById('reg-menu').style.display='none'; document.getElementById('login-menu').style.display='flex'">ЕСТЬ АККАУНТ?</button>
+    </div>
+
+    <div id="login-menu">
+        <h1>ВХОД</h1>
+        <form id="loginForm" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <input type="text" id="logName" placeholder="Имя..." required>
+            <input type="password" id="logPass" placeholder="Пароль..." required>
+            <button type="submit" onclick="window.playClick()">ВОЙТИ</button>
+        </form>
+        <button onclick="window.playClick(); document.getElementById('login-menu').style.display='none'; document.getElementById('reg-menu').style.display='flex'">НАЗАД</button>
+    </div>
+    
+    <div id="mode-menu">
+        <h1>РЕЖИМ</h1>
+        <div class="mode-buttons">
+            <div class="btn-row">
+                <button id="raidsBtn" onclick="window.playClick(); window.startMode()">ВЫЛАЗКИ</button>
+                <button class="info-btn" onclick="window.playClick(); window.showModeInfo('raids')">i</button>
+            </div>
+            <div class="btn-row">
+                <button id="bossBtn" onclick="window.playClick(); window.startBossMode()">БОЙ С БОССОМ</button>
+                <button class="info-btn" onclick="window.playClick(); window.showModeInfo('boss')">i</button>
+            </div>
+        </div>
+        <button style="margin-top:15px;" onclick="window.playClick(); document.getElementById('mode-menu').style.display='none'; document.getElementById('menu').style.display='flex'">НАЗАД</button>
+    </div>
+
+    <div id="mode-info-menu">
+        <h1>ОПИСАНИЕ РЕЖИМА</h1>
+        <div class="info-title" id="mode-info-title">ВЫЛАЗКИ</div>
+        <p id="mode-info-text">Описание режима...</p>
+        <button onclick="window.playClick(); document.getElementById('mode-info-menu').style.display='none'; document.getElementById('mode-menu').style.display='flex'">НАЗАД</button>
+    </div>
+
+    <div id="hud">
+        <div id="hp-container">
+            <div id="hp-bar"></div>
+            <div id="hp-text">HP: 10</div>
+        </div>
+        <div id="hud-bottom">
+            <div id="minimap">
+                <canvas id="mapCanvas" width="150" height="150"></canvas>
+            </div>
+            <div id="stats-hud">
+                <div id="chips-display">Чипы: 0</div>
+                <div id="kill-display">Убито: 0</div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="pause-btn" onclick="window.playClick(); window.pauseGame()">ПАУЗА</button>
+
+    <div id="menu">
+        <div id="player-name-display"></div> <h1>Toilet-Fight</h1>
+        
+        <div id="menu-content">
+            <div class="menu-col">
+                <button id="startBtn" onclick="window.playClick(); document.getElementById('menu').style.display='none'; document.getElementById('mode-menu').style.display='flex'">ИГРАТЬ</button>
+                <button id="shopBtn" onclick="window.playClick()">МАГАЗИН</button>
+                <button id="agentsBtn" onclick="window.playClick()">АГЕНТЫ</button>
+            </div>
+            
+            <div class="menu-center">
+                <div id="menu-chips-display" style="color: #ff0; font-weight: bold; margin-bottom: 5px;">Чипы: 0</div>
+                <div id="agent-display" style="margin-bottom: 5px; color: #00ffcc; font-size: clamp(10px, 1.8vh, 16px);">Агент: Камера-Мен</div>
+                <img id="agent-preview-img" src="Kamera-Men.png" style="width: 15vw; max-width: 120px; height: auto; margin: 1vh 0;">
+            </div>
+            
+            <div class="menu-col">
+                <button onclick="window.playClick(); document.getElementById('menu').style.display='none'; document.getElementById('enemies-info').style.display='flex'">ВРАГИ</button>
+                <button onclick="window.playClick(); window.openSettings('menu')">НАСТРОЙКИ</button>
+                <button onclick="window.playClick(); window.openTree()">ДРЕВО ПРОКАЧЕК</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tree-menu">
+        <h1>ДРЕВО ПОЗНАНИЙ</h1>
+        <div id="tree-chips" style="font-size: clamp(14px, 2.5vh, 22px); color: #ff0; margin-bottom: 0.5vh;">Чипы: 0</div>
+        <div style="font-size: clamp(8px, 1.4vh, 12px); text-align: center; margin-bottom: 1vh;">Прокачка Уровня увеличивает силу врагов, <br>но позволяет качать навыки дальше!</div>
+        
+        <div class="tree-layout">
+            <div class="tree-row">
+                <div id="btn-tree-level" class="tree-node" onclick="window.playClick(); window.upgradeTree('level')">УРОВЕНЬ 1<br>(100)</div>
+            </div>
+            
+            <div class="tree-connector-v"></div>
+            
+            <div class="tree-row">
+                <div id="btn-tree-hp" class="tree-node" onclick="window.playClick(); window.upgradeTree('hp')">ХП: 0<br>(50)</div>
+                <div id="btn-tree-dmg" class="tree-node" onclick="window.playClick(); window.upgradeTree('dmg')">УРОН: 0<br>(50)</div>
+                <div id="btn-tree-cold" class="tree-node" onclick="window.playClick(); window.upgradeTree('cold')">ХОЛОД: 0<br>(100)</div>
+            </div>
+        </div>
+
+        <button style="margin-top: 2vh;" onclick="window.playClick(); document.getElementById('tree-menu').style.display='none'; document.getElementById('menu').style.display='flex'">НАЗАД</button>
+    </div>
+    
+    <div id="leaderboard-menu" style="display:none;"></div>
+
+    <div id="settings-menu">
+        <h1>НАСТРОЙКИ</h1>
+        <button onclick="window.playClick(); window.toggleAudio('music')">МУЗЫКА: <span id="mus-status">ВКЛ</span></button>
+        <button onclick="window.playClick(); window.toggleAudio('fx')">ЭФФЕКТЫ: <span id="fx-status">ВКЛ</span></button>
+        <button onclick="window.playClick(); document.getElementById('settings-menu').style.display='none'; document.getElementById('login-menu').style.display='flex'">ВОЙТИ В АККАУНТ</button>
+        <button onclick="window.playClick(); window.logout()">ВЫЙТИ</button>
+        <button id="backFromSettings" onclick="window.playClick()">НАЗАД</button>
+    </div>
+
+    <div id="enemies-info">
+        <h1>ВРАГИ</h1>
+        <p style="font-size: clamp(12px, 1.8vh, 16px);">СКИБИДИСТ: 3 ХП, 1 урон</p>
+        <p style="font-size: clamp(12px, 1.8vh, 16px);">ПРОКАЧЕННЫЙ: 5 ХП, 3 урона</p>
+        <p style="font-size: clamp(10px, 1.4vh, 14px); color: yellow;">Внимание: Характеристики врагов<br>растут с Уровнем Древа Познаний!</p>
+        <button onclick="window.playClick(); document.getElementById('enemies-info').style.display='none'; document.getElementById('menu').style.display='flex'">НАЗАД</button>
+    </div>
+
+    <div id="shop-menu">
+        <h1>МАГАЗИН</h1>
+        <!-- Изменены цены: Спикер-Мен 300, Биг-Камера 400 -->
+        <button id="buySpeakerBtn" onclick="window.buySpeaker()">СПИКЕР-МЕН (300)</button>
+        <button id="buyBigBtn" onclick="window.buyBig()">БИГ-КАМЕРА (400)</button>
+        <button id="buyTvBtn" onclick="window.buyTv()">ТВ-МЕН (800)</button>
+        <button id="buyTitanBtn" onclick="window.buyTitan()">ТИТАН-КАМЕРА (3000)</button>
+        <button id="buySpeakerTitanBtn" onclick="window.buySpeakerTitan()">ТИТАН-СПИКЕР (2500)</button>
+        <input type="text" id="promoInput" placeholder="Промокод...">
+        <button id="promoBtn" onclick="window.playClick(); window.applyPromo()">АКТИВИРОВАТЬ</button>
+        <button onclick="window.playClick(); document.getElementById('shop-menu').style.display='none'; document.getElementById('menu').style.display='flex'">НАЗАД</button>
+    </div>
+
+    <div id="agents-menu">
+        <h1>АГЕНТЫ</h1>
+        <button id="btn-camera" onclick="window.playClick(); window.setAgent('camera')">КАМЕРА-МЕН</button>
+        <button id="btn-speaker" style="display:none;" onclick="window.playClick(); window.setAgent('speaker')">СПИКЕР-МЕН</button>
+        <button id="btn-big" style="display:none;" onclick="window.playClick(); window.setAgent('big')">БИГ-КАМЕРА</button>
+        <button id="btn-tv" style="display:none;" onclick="window.playClick(); window.setAgent('tv')">ТВ-МЕН</button>
+        <button id="btn-titan" style="display:none;" onclick="window.playClick(); window.setAgent('titan')">ТИТАН-КАМЕРА</button>
+        <button id="btn-speaker-titan" style="display:none;" onclick="window.playClick(); window.setAgent('speakerTitan')">ТИТАН-СПИКЕР</button>
+        <button onclick="window.playClick(); document.getElementById('agents-menu').style.display='none'; document.getElementById('menu').style.display='flex'">НАЗАД</button>
+    </div>
+
+    <div id="pause-menu">
+        <h1>ПАУЗА</h1>
+        <button id="resumeBtn" onclick="window.playClick(); window.resumeGame()">ПРОДОЛЖИТЬ</button>
+        <button onclick="window.playClick(); location.reload()">В МЕНЮ</button>
+    </div>
+
+    <div id="game-over">
+        <h1>ВЫ ПРОИГРАЛИ</h1>
+        <button onclick="window.playClick(); location.reload()">В МЕНЮ</button>
+    </div>
+
+    <div id="controls-layout">
+        <div id="joystick-area">
+            <div id="joystick-knob"></div>
+        </div>
+        <div id="force-field-btn" onclick="window.activateForceField()">ПОЛЕ</div>
+        <div id="core-eruption-btn" onclick="window.activateCoreEruption()">ЯДРО</div>
+        <div id="dynamic-field-btn" onclick="window.activateDynamicField()">ДИН. ПОЛЕ</div>
+        <div id="attack-btn" onpointerdown="window.triggerAttack()">УДАР</div>
+    </div>
+</div>
+
+<script type="importmap"> { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } } </script>
+<script type="module">
+    // ================================================================
+    //  АДАПТИВНАЯ ВЕРСИЯ ИГРЫ
+    //  - Все элементы интерфейса используют относительные размеры
+    //  - Игра подстраивается под любое разрешение экрана
+    //  - Сохранена вся функциональность
+    //  - Увеличены цены агентов: Спикер-Мен 300, Биг-Камера 400
+    // ================================================================
+    
+    import * as THREE from 'three';
+    const container = document.getElementById('game-container');
+    
+    let clickSound, errorSound, paySuccessSound;
+    
+    // --- КУЛДАУН АТАКИ ---
+    let attackCooldown = false;
+    let attackCooldownTimer = 0;
+    let attackCooldownMax = 1.5;
+    let attackBtn = document.getElementById('attack-btn');
+    
+    // --- СИЛОВОЕ ПОЛЕ (ТВ-Мен) ---
+    let hasTvAgent = false;
+    let forceFieldActive = false;
+    let forceFieldCooldown = false;
+    let forceFieldTimer = 0;
+    let forceFieldCooldownTimer = 0;
+    const FORCE_FIELD_DURATION = 10;
+    const FORCE_FIELD_COOLDOWN = 30;
+    const FORCE_FIELD_DAMAGE = 2;
+    const FORCE_FIELD_RADIUS = 6;
+    let forceFieldMesh = null;
+    let forceFieldBtn = document.getElementById('force-field-btn');
+    
+    // --- ИЗВЕРЖЕНИЕ ЯДРА (Титан-Камера) ---
+    let hasTitanAgent = false;
+    let coreEruptionActive = false;
+    let coreEruptionCooldown = false;
+    let coreEruptionTimer = 0;
+    let coreEruptionCooldownTimer = 0;
+    const CORE_ERUPTION_DURATION = 3;
+    const CORE_ERUPTION_COOLDOWN = 110;
+    const CORE_ERUPTION_RADIUS = 20;
+    let coreEruptionBtn = document.getElementById('core-eruption-btn');
+    let coreOverlay = document.getElementById('core-eruption-overlay');
+    let coreEruptionShake = 0;
+    
+    // --- ДИНАМИЧЕСКОЕ ПОЛЕ (Титан-Спикер) ---
+    let hasSpeakerTitanAgent = false;
+    let dynamicFieldActive = false;
+    let dynamicFieldCooldown = false;
+    let dynamicFieldTimer = 0;
+    let dynamicFieldCooldownTimer = 0;
+    const DYNAMIC_FIELD_DURATION = 0.5;
+    const DYNAMIC_FIELD_COOLDOWN = 30;
+    const DYNAMIC_FIELD_RADIUS = 8;
+    const DYNAMIC_FIELD_DAMAGE = 2;
+    let dynamicFieldBtn = document.getElementById('dynamic-field-btn');
+    let dynamicFieldParticles = [];
+    
+    // --- ОГРАНИЧЕНИЕ ВРАЩЕНИЯ КАМЕРЫ ---
+    const MIN_PHI = 0.15;
+    const MAX_PHI = 1.1;
+    
+    // --- ПРОКАЧКИ ДЛЯ КАЖДОГО АГЕНТА ---
+    let agentStats = {};
+    let treeLevel = 1;
+    
+    // --- ТЕКУЩИЕ СТАТЫ ДЛЯ АКТИВНОГО АГЕНТА ---
+    let currentAgentHpLvl = 0;
+    let currentAgentDmgLvl = 0;
+    let currentAgentTreeHpLvl = 0;
+    let currentAgentTreeDmgLvl = 0;
+    let currentAgentTreeColdLvl = 0;
+    
+    // --- УСКОРЕНИЕ ВРЕМЕНИ (1 реальная = 5 игровых) ---
+    const TIME_SCALE = 5;
+    
+    // --- МНОЖИТЕЛЬ СКОРОСТИ ДЛЯ ТИТАНОВ ---
+    let moveSpeedMultiplier = 1;
+    
+    // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+    function getLang() {
+        return {
+            player_label: 'Игрок:',
+            guest: 'Гость',
+            hud_chips: 'Чипы:',
+            hud_kills: 'Убито:',
+            menu_chips: 'Чипы:',
+            tree_level: 'УРОВЕНЬ',
+            tree_hp: 'ХП:',
+            tree_dmg: 'УРОН:',
+            tree_cold: 'ХОЛОД:',
+            tree_max: 'МАКС',
+            promo_error: 'Ошибка'
+        };
+    }
+    
+    function updateAttackCooldownUI() {
+        if (attackCooldown) {
+            const remaining = Math.ceil(attackCooldownTimer);
+            attackBtn.textContent = remaining + 'с';
+            attackBtn.style.background = '#666';
+        } else {
+            attackBtn.textContent = 'УДАР';
+            attackBtn.style.background = '#ff0000';
+        }
+    }
+    
+    function updateForceFieldUI() {
+        if (forceFieldActive) {
+            const remaining = Math.ceil(forceFieldTimer);
+            forceFieldBtn.textContent = remaining + 'с';
+            forceFieldBtn.style.background = '#aa44ff';
+            forceFieldBtn.style.borderColor = '#ff00ff';
+        } else if (forceFieldCooldown) {
+            const remaining = Math.ceil(forceFieldCooldownTimer);
+            forceFieldBtn.textContent = remaining + 'с';
+            forceFieldBtn.style.background = '#444';
+            forceFieldBtn.style.borderColor = '#666';
+        } else {
+            forceFieldBtn.textContent = 'ПОЛЕ';
+            forceFieldBtn.style.background = '#8b00ff';
+            forceFieldBtn.style.borderColor = '#aa44ff';
+        }
+    }
+    
+    function updateCoreEruptionUI() {
+        if (coreEruptionActive) {
+            const remaining = Math.ceil(coreEruptionTimer);
+            coreEruptionBtn.textContent = remaining + 'с';
+            coreEruptionBtn.style.background = '#0066ff';
+            coreEruptionBtn.style.borderColor = '#00ddff';
+        } else if (coreEruptionCooldown) {
+            const remaining = Math.ceil(coreEruptionCooldownTimer);
+            coreEruptionBtn.textContent = remaining + 'с';
+            coreEruptionBtn.style.background = '#444';
+            coreEruptionBtn.style.borderColor = '#666';
+        } else {
+            coreEruptionBtn.textContent = 'ЯДРО';
+            coreEruptionBtn.style.background = '#0044ff';
+            coreEruptionBtn.style.borderColor = '#00aaff';
+        }
+    }
+    
+    function updateDynamicFieldUI() {
+        if (dynamicFieldCooldown) {
+            const remaining = Math.ceil(dynamicFieldCooldownTimer);
+            dynamicFieldBtn.textContent = remaining + 'с';
+            dynamicFieldBtn.style.background = '#444';
+            dynamicFieldBtn.style.borderColor = '#666';
+        } else {
+            dynamicFieldBtn.textContent = 'ДИН. ПОЛЕ';
+            dynamicFieldBtn.style.background = '#ff8800';
+            dynamicFieldBtn.style.borderColor = '#ffcc00';
+        }
+    }
+    
+    window.activateForceField = function() {
+        if (!isPlaying || isPaused) return;
+        if (activeAgent !== 'tv') return;
+        if (forceFieldActive || forceFieldCooldown) return;
+        
+        forceFieldActive = true;
+        forceFieldTimer = FORCE_FIELD_DURATION;
+        
+        const geometry = new THREE.RingGeometry(FORCE_FIELD_RADIUS - 0.3, FORCE_FIELD_RADIUS, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x8b00ff,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide
+        });
+        forceFieldMesh = new THREE.Mesh(geometry, material);
+        forceFieldMesh.rotation.x = -Math.PI / 2;
+        forceFieldMesh.position.set(player.position.x, 0.1, player.position.z);
+        scene.add(forceFieldMesh);
+        
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0xaa44ff,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide
+        });
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const x = Math.cos(angle) * FORCE_FIELD_RADIUS;
+            const z = Math.sin(angle) * FORCE_FIELD_RADIUS;
+            const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 0.1), glowMat);
+            pillar.position.set(player.position.x + x, 1.5, player.position.z + z);
+            scene.add(pillar);
+            forceFieldMesh.userData.pillars = forceFieldMesh.userData.pillars || [];
+            forceFieldMesh.userData.pillars.push(pillar);
+        }
+        
+        updateForceFieldUI();
+        window.playClick();
+    };
+    
+    window.activateCoreEruption = function() {
+        if (!isPlaying || isPaused) return;
+        if (activeAgent !== 'titan') return;
+        if (coreEruptionActive || coreEruptionCooldown) return;
+        
+        coreEruptionActive = true;
+        coreEruptionTimer = CORE_ERUPTION_DURATION;
+        coreEruptionShake = 1.5;
+        coreOverlay.style.display = 'block';
+        coreOverlay.style.background = 'rgba(0,0,255,0.4)';
+        
+        // Уничтожаем всех врагов, кроме боссов, в радиусе 20
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            if (e.isBoss) continue;
+            const dist = e.mesh.position.distanceTo(player.position);
+            if (dist < CORE_ERUPTION_RADIUS) {
+                scene.remove(e.mesh);
+                if (!e.isBoss) {
+                    scene.remove(e.hpGroup);
+                    enemies.splice(i, 1);
+                    chips += 10;
+                    killCount++;
+                    updateDisplay();
+                    if (scene.background.getHex() !== 0x1a1a2e) spawnEnemy(1);
+                }
+            }
+        }
+        
+        window.playPaySuccessSound();
+        updateCoreEruptionUI();
+    };
+    
+    // --- АКТИВАЦИЯ ДИНАМИЧЕСКОГО ПОЛЯ ---
+    window.activateDynamicField = function() {
+        if (!isPlaying || isPaused) return;
+        if (activeAgent !== 'speakerTitan') return;
+        if (dynamicFieldCooldown) return;
+        
+        // Применяем эффект
+        const center = player.position.clone();
+        const radius = DYNAMIC_FIELD_RADIUS;
+        const damage = DYNAMIC_FIELD_DAMAGE;
+        const pushForce = 8;
+        
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            if (e.isBoss) continue;
+            const dist = e.mesh.position.distanceTo(center);
+            if (dist < radius) {
+                // Отталкивание
+                const dir = e.mesh.position.clone().sub(center).normalize();
+                const pushDist = pushForce * (1 - dist / radius);
+                e.mesh.position.add(dir.multiplyScalar(pushDist));
+                // Урон
+                e.hp -= damage;
+                if (!e.isBoss) {
+                    e.bar.scale.x = Math.max(0.001, e.hp / e.maxHp);
+                }
+                e.mesh.material.color.set(0xff8800);
+                if (e.hp <= 0) {
+                    scene.remove(e.mesh);
+                    if (!e.isBoss) {
+                        scene.remove(e.hpGroup);
+                        enemies.splice(i, 1);
+                        chips += 10;
+                        killCount++;
+                        updateDisplay();
+                        if (scene.background.getHex() !== 0x1a1a2e) spawnEnemy(1);
+                    }
+                }
+            }
+        }
+        
+        // Визуальный эффект (кольцо)
+        const ringGeo = new THREE.RingGeometry(radius - 0.5, radius, 32);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0xff8800,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(center.x, 0.1, center.z);
+        scene.add(ring);
+        // Анимируем исчезновение
+        let life = 0.5;
+        const interval = setInterval(() => {
+            life -= 0.05;
+            ring.material.opacity = life * 1.2;
+            ring.scale.set(1 + (1 - life) * 0.5, 1 + (1 - life) * 0.5, 1);
+            if (life <= 0) {
+                clearInterval(interval);
+                scene.remove(ring);
+            }
+        }, 50);
+        
+        // Начинаем кулдаун
+        dynamicFieldCooldown = true;
+        dynamicFieldCooldownTimer = DYNAMIC_FIELD_COOLDOWN * TIME_SCALE;
+        updateDynamicFieldUI();
+        window.playPaySuccessSound();
+    };
+    
+    function updateCoreEruption(time, delta) {
+        if (coreEruptionActive) {
+            coreEruptionTimer -= delta;
+            const progress = 1 - (coreEruptionTimer / CORE_ERUPTION_DURATION);
+            const alpha = 0.4 * (1 - progress);
+            coreOverlay.style.background = `rgba(0,0,255,${alpha})`;
+            coreEruptionShake = 1.5 * (1 - progress);
+            if (coreEruptionTimer <= 0) {
+                coreEruptionActive = false;
+                coreOverlay.style.display = 'none';
+                coreOverlay.style.background = 'rgba(0,0,255,0)';
+                coreEruptionShake = 0;
+                coreEruptionCooldown = true;
+                coreEruptionCooldownTimer = CORE_ERUPTION_COOLDOWN;
+                updateCoreEruptionUI();
+            }
+            updateCoreEruptionUI();
+        }
+        if (coreEruptionCooldown) {
+            coreEruptionCooldownTimer -= delta;
+            if (coreEruptionCooldownTimer <= 0) {
+                coreEruptionCooldown = false;
+                coreEruptionCooldownTimer = 0;
+                updateCoreEruptionUI();
+            }
+            updateCoreEruptionUI();
+        }
+    }
+    
+    function updateForceField(time, delta) {
+        if (!forceFieldActive && !forceFieldCooldown) return;
+        
+        if (forceFieldActive) {
+            forceFieldTimer -= delta;
+            if (forceFieldMesh) {
+                forceFieldMesh.position.set(player.position.x, 0.1, player.position.z);
+                if (forceFieldMesh.userData.pillars) {
+                    for (let i = 0; i < forceFieldMesh.userData.pillars.length; i++) {
+                        const angle = (i / forceFieldMesh.userData.pillars.length) * Math.PI * 2;
+                        const x = Math.cos(angle) * FORCE_FIELD_RADIUS;
+                        const z = Math.sin(angle) * FORCE_FIELD_RADIUS;
+                        forceFieldMesh.userData.pillars[i].position.set(
+                            player.position.x + x,
+                            1.5,
+                            player.position.z + z
+                        );
+                    }
+                }
+                const pulse = 0.3 + Math.sin(time / 500) * 0.1;
+                forceFieldMesh.material.opacity = pulse;
+            }
+            
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const dist = e.mesh.position.distanceTo(player.position);
+                if (dist < FORCE_FIELD_RADIUS) {
+                    let damage = FORCE_FIELD_DAMAGE * 0.1;
+                    if (e.isBoss) damage *= 0.3;
+                    e.hp -= damage;
+                    if (!e.isBoss) {
+                        e.bar.scale.x = Math.max(0.001, e.hp / e.maxHp);
+                    }
+                    e.mesh.material.color.set(0x8b00ff);
+                    if (e.hp <= 0) {
+                        scene.remove(e.mesh);
+                        if (!e.isBoss) {
+                            scene.remove(e.hpGroup);
+                            enemies.splice(i, 1);
+                            chips += 10;
+                            killCount++;
+                            updateDisplay();
+                            if (scene.background.getHex() !== 0x1a1a2e) spawnEnemy(1);
+                        } else {
+                            if (e === boss) {
+                                if (isTarran) {
+                                    handleTarranDefeat();
+                                } else {
+                                    handleGmanDefeat();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (forceFieldTimer <= 0) {
+                forceFieldActive = false;
+                if (forceFieldMesh) {
+                    scene.remove(forceFieldMesh);
+                    if (forceFieldMesh.userData.pillars) {
+                        forceFieldMesh.userData.pillars.forEach(p => scene.remove(p));
+                    }
+                    forceFieldMesh = null;
+                }
+                forceFieldCooldown = true;
+                forceFieldCooldownTimer = FORCE_FIELD_COOLDOWN;
+                updateForceFieldUI();
+            }
+            updateForceFieldUI();
+        }
+        
+        if (forceFieldCooldown) {
+            forceFieldCooldownTimer -= delta;
+            if (forceFieldCooldownTimer <= 0) {
+                forceFieldCooldown = false;
+                forceFieldCooldownTimer = 0;
+                updateForceFieldUI();
+            }
+            updateForceFieldUI();
+        }
+    }
+    
+    function updateDynamicField(time, delta) {
+        if (dynamicFieldCooldown) {
+            dynamicFieldCooldownTimer -= delta;
+            if (dynamicFieldCooldownTimer <= 0) {
+                dynamicFieldCooldown = false;
+                dynamicFieldCooldownTimer = 0;
+                updateDynamicFieldUI();
+            }
+            updateDynamicFieldUI();
+        }
+    }
+    
+    function updateHUD() {
+        const hpBar = document.getElementById('hp-bar');
+        const hpText = document.getElementById('hp-text');
+        const maxHp = getCurrentMaxHP();
+        const percent = (playerHP / maxHp) * 100;
+        hpBar.style.width = percent + "%";
+        hpText.innerText = "HP: " + playerHP + "/" + maxHp;
+        document.getElementById('chips-display').textContent = "Чипы: " + chips;
+        document.getElementById('kill-display').textContent = "Убито: " + killCount;
+        document.getElementById('menu-chips-display').textContent = "Чипы: " + chips;
+        updateAttackCooldownUI();
+    }
+
+    function updateAgentDisplay() {
+        const imgElement = document.getElementById('agent-preview-img');
+        const sprites = { camera: 'Kamera-Men.png', speaker: 'spiker.png', big: 'big_cam.png', tv: 'TV-man.png', titan: 'camera-titan.png', speakerTitan: 'spiker-titan.png' };
+        imgElement.src = sprites[activeAgent] || 'Kamera-Men.png';
+        const agentNames = { camera: 'Камера-Мен', speaker: 'Спикер-Мен', big: 'Биг-Камера', tv: 'ТВ-Мен', titan: 'Титан-Камера', speakerTitan: 'Титан-Спикер' };
+        document.getElementById('agent-display').innerText = "Агент: " + (agentNames[activeAgent] || 'Камера-Мен');
+        
+        if (activeAgent === 'tv' && hasTvAgent) {
+            forceFieldBtn.style.display = 'flex';
+        } else {
+            forceFieldBtn.style.display = 'none';
+        }
+        if (activeAgent === 'titan' && hasTitanAgent) {
+            coreEruptionBtn.style.display = 'flex';
+        } else {
+            coreEruptionBtn.style.display = 'none';
+        }
+        if (activeAgent === 'speakerTitan' && hasSpeakerTitanAgent) {
+            dynamicFieldBtn.style.display = 'flex';
+        } else {
+            dynamicFieldBtn.style.display = 'none';
+        }
+    }
+
+    window.showModeInfo = (mode) => {
+        const title = document.getElementById('mode-info-title');
+        const text = document.getElementById('mode-info-text');
+        if (mode === 'raids') {
+            title.textContent = 'ВЫЛАЗКИ';
+            text.textContent = 'Классический режим игры. Вы появляетесь на открытой местности, где на вас постоянно нападают волны скибидистов. Уничтожайте врагов, собирайте чипы и аптечки. С каждым уровнем враги становятся сильнее, но и награда растёт. Прокачивайте дерево навыков, чтобы выживать дольше и наносить больше урона.';
+        } else if (mode === 'boss') {
+            title.textContent = 'БОЙ С БОССОМ';
+            text.textContent = 'Режим испытания. Вы переноситесь в закрытое помещение, где вас ждёт могущественный босс. Это может быть G-Man Босс или Безумный-Тарран. Уклоняйтесь, атакуйте, используйте способности агентов. Победа принесёт много чипов!';
+        }
+        document.getElementById('mode-menu').style.display = 'none';
+        document.getElementById('mode-info-menu').style.display = 'flex';
+    };
+
+    function showLoading(callback) {
+        const overlay = document.getElementById('loading-overlay');
+        const bar = document.getElementById('loading-bar-inner');
+        overlay.style.display = 'flex';
+        bar.style.width = '0%';
+        let progress = 0;
+        const interval = setInterval(() => {
+            let step = 0.5 + Math.random() * 4;
+            if (Math.random() < 0.1) step = 0;
+            if (Math.random() < 0.05) step = 6 + Math.random() * 4;
+            progress += step;
+            if (progress > 100) progress = 100;
+            bar.style.width = progress + '%';
+            if (progress >= 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    if (callback) callback();
+                }, 300);
+            }
+        }, 50);
+    }
+
+    // --- БОССЫ ---
+    let boss = null;
+    let isTarran = false;
+    let tarranState = 'flying';
+    let tarranTimer = 110;
+    let tarranFallSpeed = 0;
+    const TARRAN_FALL_ACCELERATION = 0.002;
+    const TARRAN_MAX_FALL_SPEED = 0.06;
+    let tarranExplosionRadius = 10;
+    let tarranExplosionTimer = 0;
+    let tarranExplosionDone = false;
+    let tarranMesh = null;
+    let tarranFallPos = new THREE.Vector3();
+    let tarranRedCircle = null;
+    let tarranExplosionSprite = null;
+    let tarranDefeated = false;
+    let tarranSpeedX = 0;
+    let tarranSpeedZ = 0;
+    const TARRAN_SPEED = 0.07;
+    const TARRAN_BOUNDARY = 42;
+    let tarranTargetPos = new THREE.Vector3();
+    let tarranIsFalling = false;
+    
+    let bossState = 'idle';
+    let bossShootTimer = 0;
+    let bossUltTimer = 0;
+    let bossBullets = [];
+    let bossGiantBullet = null;
+    let bossUltActive = false;
+    let bossUltDuration = 10;
+    let bossNextActionTime = 0;
+    let bossPauseDuration = 0;
+    let bossShootPause = false;
+    let bossShootPauseTimer = 0;
+    let bossWarningElement = document.getElementById('boss-warning');
+    let bossHpContainer = document.getElementById('boss-hp-container');
+    let bossHpBar = document.getElementById('boss-hp-bar');
+    let bossHpText = document.getElementById('boss-hp-text');
+    let bossIsActive = false;
+
+    function handleGmanDefeat() {
+        scene.remove(boss.mesh);
+        enemies = enemies.filter(e => e !== boss);
+        boss = null;
+        bossBullets.forEach(b => scene.remove(b));
+        bossBullets = [];
+        if (bossGiantBullet) { scene.remove(bossGiantBullet); bossGiantBullet = null; }
+        bossHpContainer.style.display = 'none';
+        chips += 500;
+        killCount += 5;
+        updateDisplay();
+        bossWarningElement.style.display = 'none';
+        bossWarningElement.textContent = '';
+        bossIsActive = false;
+        alert("Босс побеждён! +500 чипов!");
+        isPlaying = false;
+        document.getElementById('menu').style.display = 'flex';
+        document.getElementById('minimap').style.display = 'block';
+        scene.background = new THREE.Color(0x87ceeb);
+        rebuildGrassland();
+    }
+    
+    function handleTarranDefeat() {
+        if (tarranMesh) scene.remove(tarranMesh);
+        if (tarranRedCircle) scene.remove(tarranRedCircle);
+        if (tarranExplosionSprite) scene.remove(tarranExplosionSprite);
+        enemies = enemies.filter(e => e !== boss);
+        boss = null;
+        bossHpContainer.style.display = 'none';
+        chips += 300;
+        killCount += 3;
+        updateDisplay();
+        bossWarningElement.style.display = 'none';
+        bossWarningElement.textContent = '';
+        bossIsActive = false;
+        isTarran = false;
+        alert("Тарран уничтожен! +300 чипов!");
+        isPlaying = false;
+        document.getElementById('menu').style.display = 'flex';
+        document.getElementById('minimap').style.display = 'block';
+        scene.background = new THREE.Color(0x87ceeb);
+        rebuildGrassland();
+    }
+    
+    function killPlayer() {
+        playerHP = 0;
+        updateHUD();
+        isPlaying = false;
+        document.getElementById('game-over').style.display = 'flex';
+        bossIsActive = false;
+    }
+
+    window.startBossMode = function() {
+        window.playClick();
+        showLoading(() => {
+            isTarran = Math.random() < 0.75;
+            teleportToBossRoom();
+        });
+    };
+
+    function clearBossRoomObjects() {
+        const toRemove = [];
+        scene.children.forEach(child => {
+            if (child.isMesh) {
+                const mapName = child.material && child.material.map && child.material.map.image ? child.material.map.image.src : '';
+                if (mapName.includes('plitka.jpg') || mapName.includes('stenka.jpg') || 
+                    mapName.includes('grass.png') || mapName.includes('walls.jpg')) {
+                    toRemove.push(child);
+                }
+                if (child.position.y === 20 || child.position.y === 10 || child.position.y === 6) {
+                    toRemove.push(child);
+                }
+                if (child.geometry.type === 'RingGeometry' || 
+                    (child.geometry.type === 'BoxGeometry' && child.geometry.parameters && child.geometry.parameters.height === 3 && child.geometry.parameters.width === 0.1)) {
+                    toRemove.push(child);
+                }
+                if (child === tarranRedCircle || child === tarranExplosionSprite || child === tarranMesh) {
+                    toRemove.push(child);
+                }
+                if (child.position.y === 0 && child.geometry.type === 'PlaneGeometry') {
+                    toRemove.push(child);
+                }
+            }
+        });
+        toRemove.forEach(child => scene.remove(child));
+        walls = [];
+        wallData = [];
+        tarranRedCircle = null;
+        tarranExplosionSprite = null;
+        tarranMesh = null;
+        bossHpContainer.style.display = 'none';
+    }
+
+    function teleportToBossRoom() {
+        bossIsActive = true;
+        isPlaying = false;
+        // Полная очистка
+        enemies.forEach(e => { scene.remove(e.mesh); scene.remove(e.hpGroup); });
+        enemies = [];
+        bullets.forEach(b => scene.remove(b.mesh));
+        bullets = [];
+        bossBullets.forEach(b => scene.remove(b));
+        bossBullets = [];
+        if (bossGiantBullet) { scene.remove(bossGiantBullet); bossGiantBullet = null; }
+        if (medkit) { scene.remove(medkit); medkit = null; }
+        if (forceFieldMesh) {
+            scene.remove(forceFieldMesh);
+            if (forceFieldMesh.userData.pillars) {
+                forceFieldMesh.userData.pillars.forEach(p => scene.remove(p));
+            }
+            forceFieldMesh = null;
+        }
+        forceFieldActive = false;
+        forceFieldCooldown = false;
+        forceFieldTimer = 0;
+        forceFieldCooldownTimer = 0;
+        updateForceFieldUI();
+        coreEruptionActive = false;
+        coreEruptionCooldown = false;
+        coreEruptionTimer = 0;
+        coreEruptionCooldownTimer = 0;
+        coreOverlay.style.display = 'none';
+        coreOverlay.style.background = 'rgba(0,0,255,0)';
+        updateCoreEruptionUI();
+        dynamicFieldCooldown = false;
+        dynamicFieldCooldownTimer = 0;
+        updateDynamicFieldUI();
+        
+        clearBossRoomObjects();
+        
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        const floorTex = getTex('plitka.jpg');
+        floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(20, 20);
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMat);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.position.y = 0;
+        scene.add(floorMesh);
+        
+        const ceilingMat = new THREE.MeshBasicMaterial({ map: floorTex });
+        const ceilingMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), ceilingMat);
+        ceilingMesh.rotation.x = Math.PI / 2;
+        ceilingMesh.position.y = 20;
+        scene.add(ceilingMesh);
+        
+        const wallTex = getTex('stenka.jpg');
+        wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+        wallTex.repeat.set(10, 2);
+        const wallMat = new THREE.MeshBasicMaterial({ map: wallTex });
+        
+        const wallPositions = [
+            { x: 0, z: 50, w: 100, h: 20, d: 1 },
+            { x: 0, z: -50, w: 100, h: 20, d: 1 },
+            { x: 50, z: 0, w: 1, h: 20, d: 100 },
+            { x: -50, z: 0, w: 1, h: 20, d: 100 }
+        ];
+        
+        wallPositions.forEach(pos => {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(pos.w, pos.h, pos.d), wallMat);
+            wall.position.set(pos.x, pos.h/2, pos.z);
+            scene.add(wall);
+            walls.push(new THREE.Box3().setFromObject(wall));
+            wallData.push({ x: pos.x, z: pos.z, w: pos.w, d: pos.d });
+        });
+        
+        player.position.set(0, targetY, 0);
+        
+        if (isTarran) {
+            const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), camRot.theta);
+            const spawnX = forward.x / Math.abs(forward.z) * 45;
+            const spawnZ = 45 * Math.sign(forward.z);
+            const clampedX = Math.max(-45, Math.min(45, spawnX));
+            
+            const tarranTex = getTex('crazy-skibidi-boss.png');
+            const height = 12;
+            const width = height * 0.8;
+            tarranMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(width, height),
+                new THREE.MeshBasicMaterial({ map: tarranTex, color: 0xffffff, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide })
+            );
+            tarranMesh.position.set(clampedX, 10, spawnZ);
+            scene.add(tarranMesh);
+            
+            tarranState = 'flying';
+            tarranTimer = 110;
+            tarranFallSpeed = 0;
+            tarranExplosionTimer = 0;
+            tarranExplosionDone = false;
+            tarranDefeated = false;
+            tarranIsFalling = false;
+            tarranTargetPos.set(0, 0, 0);
+            tarranSpeedX = (Math.random() - 0.5) * TARRAN_SPEED * 1.5;
+            tarranSpeedZ = (Math.random() - 0.5) * TARRAN_SPEED * 1.5;
+            
+            bossHpContainer.style.display = 'block';
+            bossHpBar.style.display = 'none';
+            bossHpText.textContent = 'ВРЕМЯ: ' + Math.ceil(tarranTimer) + 'с';
+            bossHpText.style.color = '#ffcc00';
+            bossHpContainer.style.borderColor = '#ffcc00';
+            
+            const circleGeo = new THREE.RingGeometry(0.5, tarranExplosionRadius, 32);
+            const circleMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+            tarranRedCircle = new THREE.Mesh(circleGeo, circleMat);
+            tarranRedCircle.rotation.x = -Math.PI / 2;
+            tarranRedCircle.position.set(0, 0.1, 0);
+            tarranRedCircle.visible = false;
+            scene.add(tarranRedCircle);
+            
+            boss = {
+                mesh: tarranMesh,
+                hp: 9999,
+                maxHp: 9999,
+                damage: 3,
+                isBoss: true,
+                isTarran: true
+            };
+            enemies.push(boss);
+            bossIsActive = true;
+            bossWarningElement.style.display = 'none';
+            document.getElementById('minimap').style.display = 'none';
+            document.getElementById('mode-menu').style.display = 'none';
+            isPlaying = true;
+            if (window.enemyInterval) clearInterval(window.enemyInterval);
+            if (window.medkitInterval) clearInterval(window.medkitInterval);
+        } else {
+            const bossTex = getTex('G-man-Boss.png');
+            const bossHeight = 16;
+            const bossWidth = bossHeight * 0.85;
+            const bossMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(bossWidth, bossHeight),
+                new THREE.MeshBasicMaterial({ map: bossTex, color: 0xffffff, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide })
+            );
+            bossMesh.position.set(0, bossHeight/2, -40);
+            scene.add(bossMesh);
+            
+            const bossHp = 80 + (treeLevel - 1) * 15;
+            boss = {
+                mesh: bossMesh,
+                hp: bossHp,
+                maxHp: bossHp,
+                damage: 3,
+                isBoss: true,
+                isTarran: false
+            };
+            enemies.push(boss);
+            
+            bossHpContainer.style.display = 'block';
+            bossHpBar.style.display = 'block';
+            bossHpBar.style.width = '100%';
+            bossHpText.textContent = 'БОСС: 100%';
+            bossHpText.style.color = 'white';
+            bossHpContainer.style.borderColor = '#00ffcc';
+            
+            bossState = 'idle';
+            bossShootTimer = 0;
+            bossUltTimer = 0;
+            bossUltActive = false;
+            bossShootPause = false;
+            bossShootPauseTimer = 0;
+            bossNextActionTime = performance.now() + 1500;
+            bossWarningElement.style.display = 'none';
+            bossWarningElement.textContent = '';
+            bossIsActive = true;
+            document.getElementById('minimap').style.display = 'none';
+            document.getElementById('mode-menu').style.display = 'none';
+            isPlaying = true;
+            if (window.enemyInterval) clearInterval(window.enemyInterval);
+            if (window.medkitInterval) clearInterval(window.medkitInterval);
+        }
+    }
+
+    function updateBoss(time, delta) {
+        if (!boss || !isPlaying || isPaused || !bossIsActive) return;
+        
+        if (isTarran) {
+            updateTarran(time, delta);
+        } else {
+            updateGman(time, delta);
+        }
+    }
+    
+    function updateTarran(time, delta) {
+        if (tarranDefeated) return;
+        
+        if (tarranMesh) {
+            tarranMesh.lookAt(camera.position.x, tarranMesh.position.y, camera.position.z);
+        }
+        
+        if (tarranState === 'flying') {
+            tarranMesh.position.x += tarranSpeedX * delta * 10;
+            tarranMesh.position.z += tarranSpeedZ * delta * 10;
+            if (tarranMesh.position.x > TARRAN_BOUNDARY) {
+                tarranMesh.position.x = TARRAN_BOUNDARY;
+                tarranSpeedX = -Math.abs(tarranSpeedX);
+            } else if (tarranMesh.position.x < -TARRAN_BOUNDARY) {
+                tarranMesh.position.x = -TARRAN_BOUNDARY;
+                tarranSpeedX = Math.abs(tarranSpeedX);
+            }
+            if (tarranMesh.position.z > TARRAN_BOUNDARY) {
+                tarranMesh.position.z = TARRAN_BOUNDARY;
+                tarranSpeedZ = -Math.abs(tarranSpeedZ);
+            } else if (tarranMesh.position.z < -TARRAN_BOUNDARY) {
+                tarranMesh.position.z = -TARRAN_BOUNDARY;
+                tarranSpeedZ = Math.abs(tarranSpeedZ);
+            }
+            if (Math.random() < 0.015) {
+                tarranSpeedX += (Math.random() - 0.5) * 0.03;
+                tarranSpeedZ += (Math.random() - 0.5) * 0.03;
+                const spd = Math.sqrt(tarranSpeedX*tarranSpeedX + tarranSpeedZ*tarranSpeedZ);
+                if (spd > TARRAN_SPEED * 1.8) {
+                    tarranSpeedX = (tarranSpeedX / spd) * TARRAN_SPEED * 1.2;
+                    tarranSpeedZ = (tarranSpeedZ / spd) * TARRAN_SPEED * 1.2;
+                }
+                if (spd < TARRAN_SPEED * 0.4) {
+                    tarranSpeedX = (tarranSpeedX / (spd + 0.001)) * TARRAN_SPEED * 0.8;
+                    tarranSpeedZ = (tarranSpeedZ / (spd + 0.001)) * TARRAN_SPEED * 0.8;
+                }
+            }
+            
+            tarranTimer -= delta;
+            bossHpText.textContent = 'ВРЕМЯ: ' + Math.ceil(tarranTimer) + 'с';
+            if (tarranTimer <= 0) {
+                tarranState = 'falling';
+                tarranFallSpeed = 0;
+                tarranIsFalling = true;
+                tarranTargetPos.copy(player.position);
+                tarranFallPos.copy(tarranTargetPos);
+                tarranRedCircle.position.set(tarranTargetPos.x, 0.1, tarranTargetPos.z);
+                tarranRedCircle.visible = true;
+                bossHpText.textContent = 'ПАДЕНИЕ!';
+                bossHpText.style.color = '#ff0000';
+            }
+        } else if (tarranState === 'falling') {
+            const dx = tarranTargetPos.x - tarranMesh.position.x;
+            const dz = tarranTargetPos.z - tarranMesh.position.z;
+            const dist = Math.sqrt(dx*dx + dz*dz);
+            if (dist > 0.5) {
+                const moveSpeed = 0.25 * delta * 10;
+                tarranMesh.position.x += (dx / dist) * moveSpeed;
+                tarranMesh.position.z += (dz / dist) * moveSpeed;
+            }
+            tarranFallSpeed += TARRAN_FALL_ACCELERATION * delta * 10;
+            if (tarranFallSpeed > TARRAN_MAX_FALL_SPEED) tarranFallSpeed = TARRAN_MAX_FALL_SPEED;
+            tarranMesh.position.y -= tarranFallSpeed * delta * 10;
+            
+            if (tarranMesh.position.y <= 1.5) {
+                tarranMesh.position.y = 1.5;
+                tarranState = 'exploding';
+                tarranExplosionTimer = 5;
+                tarranExplosionDone = false;
+                tarranFallPos.copy(tarranTargetPos);
+                const expTex = getTex('explosion.png');
+                const expMat = new THREE.SpriteMaterial({ map: expTex, transparent: true, depthTest: false });
+                tarranExplosionSprite = new THREE.Sprite(expMat);
+                tarranExplosionSprite.position.set(tarranTargetPos.x, 3, tarranTargetPos.z);
+                tarranExplosionSprite.scale.set(15, 15, 1);
+                scene.add(tarranExplosionSprite);
+                bossHpText.textContent = 'ВЗРЫВ!';
+                bossHpText.style.color = '#ff4400';
+                tarranRedCircle.visible = false;
+                scene.remove(tarranMesh);
+                tarranMesh = null;
+                tarranIsFalling = false;
+            }
+        } else if (tarranState === 'exploding') {
+            tarranExplosionTimer -= delta;
+            if (tarranExplosionTimer <= 0 && !tarranExplosionDone) {
+                tarranExplosionDone = true;
+                const dist = player.position.distanceTo(new THREE.Vector3(tarranTargetPos.x, 0, tarranTargetPos.z));
+                if (dist < tarranExplosionRadius) {
+                    killPlayer();
+                } else {
+                    handleTarranDefeat();
+                }
+            }
+        }
+        
+        if (tarranState === 'flying' && tarranMesh) {
+            if (time - bossShootTimer > 120) {
+                bossShootTimer = time;
+                shootBossBullet();
+            }
+        }
+        
+        updateBossBullets(time);
+    }
+    
+    function updateGman(time, delta) {
+        if (!boss) return;
+        boss.mesh.lookAt(camera.position.x, boss.mesh.position.y, camera.position.z);
+        
+        const hpPercent = Math.max(0, (boss.hp / boss.maxHp) * 100);
+        bossHpBar.style.width = hpPercent + '%';
+        bossHpText.textContent = 'БОСС: ' + Math.round(hpPercent) + '%';
+        
+        if (boss.hp <= 0) {
+            handleGmanDefeat();
+            return;
+        }
+        
+        if (bossShootPause) {
+            if (time - bossShootPauseTimer > bossPauseDuration * 1000) {
+                bossShootPause = false;
+                bossWarningElement.style.display = 'none';
+                bossWarningElement.textContent = '';
+                bossState = 'idle';
+                bossNextActionTime = time + 1500 + Math.random() * 1000;
+            } else {
+                let remaining = Math.ceil((bossPauseDuration * 1000 - (time - bossShootPauseTimer)) / 1000);
+                bossWarningElement.textContent = 'ПАУЗА: ' + remaining + 'с';
+                bossWarningElement.style.display = 'block';
+            }
+            updateBossBullets(time);
+            return;
+        }
+        
+        if (time > bossNextActionTime) {
+            if (bossState === 'shooting' || bossState === 'idle') {
+                let roll = Math.random();
+                if (roll < 0.20 && !bossUltActive) {
+                    bossState = 'ult';
+                    bossUltActive = true;
+                    bossUltTimer = time;
+                    bossNextActionTime = time + 3000;
+                    shootGiantBullet();
+                    bossWarningElement.textContent = 'ГИГАНТСКАЯ ПУЛЯ!';
+                    bossWarningElement.style.display = 'block';
+                    setTimeout(() => {
+                        if (bossWarningElement) {
+                            bossWarningElement.style.display = 'none';
+                            bossWarningElement.textContent = '';
+                        }
+                    }, 1500);
+                } else if (roll < 0.55) {
+                    bossState = 'pause';
+                    bossShootPause = true;
+                    bossPauseDuration = 3.5 + Math.random() * 3;
+                    bossShootPauseTimer = time;
+                    bossWarningElement.textContent = 'ПАУЗА: ' + Math.ceil(bossPauseDuration) + 'с';
+                    bossWarningElement.style.display = 'block';
+                } else {
+                    bossState = 'shooting';
+                    bossShootTimer = time;
+                    bossNextActionTime = time + 2500 + Math.random() * 2000;
+                    bossWarningElement.textContent = 'СТРЕЛЬБА!';
+                    bossWarningElement.style.display = 'block';
+                    setTimeout(() => {
+                        if (bossWarningElement) {
+                            bossWarningElement.style.display = 'none';
+                            bossWarningElement.textContent = '';
+                        }
+                    }, 1500);
+                }
+            }
+        }
+        
+        if (!bossShootPause) {
+            if (bossState === 'shooting') {
+                if (time - bossShootTimer > 120) {
+                    bossShootTimer = time;
+                    shootBossBullet();
+                }
+            } else if (bossState === 'ult' && bossUltActive) {
+                if (time - bossUltTimer > 3000) {
+                    bossUltActive = false;
+                    bossState = 'idle';
+                    if (bossGiantBullet) {
+                        const dist = bossGiantBullet.position.distanceTo(player.position);
+                        if (dist < 3) {
+                            playerHP -= 8;
+                            updateHUD();
+                            if (playerHP <= 0) {
+                                isPlaying = false;
+                                document.getElementById('game-over').style.display = 'flex';
+                                bossIsActive = false;
+                            }
+                        }
+                        scene.remove(bossGiantBullet);
+                        bossGiantBullet = null;
+                    }
+                    bossWarningElement.style.display = 'none';
+                    bossWarningElement.textContent = '';
+                    bossNextActionTime = time + 1500 + Math.random() * 1500;
+                } else {
+                    if (bossGiantBullet) {
+                        const dir = player.position.clone().sub(bossGiantBullet.position).normalize();
+                        bossGiantBullet.position.add(dir.multiplyScalar(0.15));
+                        bossGiantBullet.lookAt(player.position);
+                        const dist = bossGiantBullet.position.distanceTo(player.position);
+                        if (dist < 2.5) {
+                            playerHP -= 8;
+                            updateHUD();
+                            scene.remove(bossGiantBullet);
+                            bossGiantBullet = null;
+                            bossUltActive = false;
+                            bossState = 'idle';
+                            bossWarningElement.style.display = 'none';
+                            bossWarningElement.textContent = '';
+                            bossNextActionTime = time + 1500 + Math.random() * 1500;
+                            if (playerHP <= 0) {
+                                isPlaying = false;
+                                document.getElementById('game-over').style.display = 'flex';
+                                bossIsActive = false;
+                            }
+                        }
+                        if (bossGiantBullet && bossGiantBullet.position.length() > 60) {
+                            scene.remove(bossGiantBullet);
+                            bossGiantBullet = null;
+                            bossUltActive = false;
+                            bossState = 'idle';
+                            bossNextActionTime = time + 1500 + Math.random() * 1500;
+                        }
+                    }
+                }
+            }
+        }
+        
+        updateBossBullets(time);
+    }
+    
+    function shootBossBullet() {
+        if (!boss) return;
+        const startPos = boss.mesh.position.clone();
+        if (isTarran) {
+            startPos.y += 2;
+        } else {
+            startPos.y += 1.2;
+        }
+        const targetPos = player.position.clone();
+        targetPos.y += 0.1;
+        const dir = targetPos.clone().sub(startPos).normalize();
+        const bullet = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4, 8, 8),
+            new THREE.MeshBasicMaterial({color: 0xff0000})
+        );
+        bullet.position.copy(startPos);
+        bullet.dir = dir;
+        scene.add(bullet);
+        bossBullets.push(bullet);
+    }
+    
+    function shootGiantBullet() {
+        if (bossGiantBullet) { scene.remove(bossGiantBullet); bossGiantBullet = null; }
+        const bullet = new THREE.Mesh(
+            new THREE.SphereGeometry(1.5, 16, 16),
+            new THREE.MeshBasicMaterial({color: 0xffaa00})
+        );
+        bullet.position.copy(boss.mesh.position);
+        bullet.position.y += 1.5;
+        scene.add(bullet);
+        bossGiantBullet = bullet;
+    }
+    
+    function updateBossBullets(time) {
+        for (let i = bossBullets.length - 1; i >= 0; i--) {
+            const b = bossBullets[i];
+            b.position.add(b.dir.clone().multiplyScalar(0.15));
+            const distToPlayer = b.position.distanceTo(player.position);
+            if (distToPlayer < 1.0) {
+                scene.remove(b);
+                bossBullets.splice(i, 1);
+                playerHP -= boss.damage;
+                updateHUD();
+                if (playerHP <= 0) {
+                    isPlaying = false;
+                    document.getElementById('game-over').style.display = 'flex';
+                    bossIsActive = false;
+                }
+            } else if (b.position.length() > 60) {
+                scene.remove(b);
+                bossBullets.splice(i, 1);
+            }
+        }
+    }
+
+    function rebuildGrassland() {
+        clearBossRoomObjects();
+        
+        const floorTex = getTex('grass.png');
+        floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(20, 20);
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex, color: 0xffffff });
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMat);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.position.y = 0;
+        scene.add(floorMesh);
+        
+        const wallTex = getTex('walls.jpg');
+        wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+        wallTex.repeat.set(20, 1);
+        const wallMat = new THREE.MeshBasicMaterial({ map: wallTex, color: 0xffffff });
+        
+        const wallPositions = [
+            { x: 0, z: 50, w: 100, h: 12, d: 2 },
+            { x: 0, z: -50, w: 100, h: 12, d: 2 },
+            { x: 50, z: 0, w: 2, h: 12, d: 100 },
+            { x: -50, z: 0, w: 2, h: 12, d: 100 }
+        ];
+        
+        wallPositions.forEach(pos => {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(pos.w, pos.h, pos.d), wallMat);
+            wall.position.set(pos.x, pos.h/2, pos.z);
+            scene.add(wall);
+            walls.push(new THREE.Box3().setFromObject(wall));
+            wallData.push({ x: pos.x, z: pos.z, w: pos.w, d: pos.d });
+        });
+        
+        player.position.set(0, targetY, 0);
+        document.getElementById('minimap').style.display = 'block';
+        bossWarningElement.style.display = 'none';
+        bossWarningElement.textContent = '';
+        bossHpContainer.style.display = 'none';
+        bossIsActive = false;
+        isTarran = false;
+        bossBullets.forEach(b => scene.remove(b));
+        bossBullets = [];
+        forceFieldActive = false;
+        forceFieldCooldown = false;
+        forceFieldTimer = 0;
+        forceFieldCooldownTimer = 0;
+        if (forceFieldMesh) {
+            scene.remove(forceFieldMesh);
+            if (forceFieldMesh.userData.pillars) {
+                forceFieldMesh.userData.pillars.forEach(p => scene.remove(p));
+            }
+            forceFieldMesh = null;
+        }
+        updateForceFieldUI();
+        coreEruptionActive = false;
+        coreEruptionCooldown = false;
+        coreEruptionTimer = 0;
+        coreEruptionCooldownTimer = 0;
+        coreOverlay.style.display = 'none';
+        coreOverlay.style.background = 'rgba(0,0,255,0)';
+        updateCoreEruptionUI();
+        dynamicFieldCooldown = false;
+        dynamicFieldCooldownTimer = 0;
+        updateDynamicFieldUI();
+    }
+
+    const loader = new THREE.TextureLoader();
+    const texturesCache = {};
+    const assets = ['Kamera-Men.png', 'Kamera-Left.png', 'Kamera-Right.png', 'spiker.png', 'Spiker-Left.png', 'Spiker-Right.png', 'big_cam.png', 'BigKam-Left.png', 'BigKam-Right.png', 'TV-man.png', 'TV-man-Left.png', 'TV-man-Right.png', 'camera-titan.png', 'camera-titan-Left.png', 'camera-titan-Right.png', 'spiker-titan.png', 'spiker-titan-Left.png', 'spiker-titan-Right.png', 'spiker-titan-walk.png', 'grass.png', 'walls.jpg', 'Skibidi.png', 'Upg_Skibidi.png', 'aptechka.png', 'stenka.jpg', 'plitka.jpg', 'G-man-Boss.png', 'crazy-skibidi-boss.png', 'explosion.png'];
+    assets.forEach(url => { texturesCache[url] = loader.load(url); });
+    const getTex = (url) => texturesCache[url];
+
+    const bannedWords = ['хуй', 'пизда', 'ебать', 'сука', 'бля', 'гандон', 'чмо', 'пидор', 'гандоны', 'хуесос', 'ебанат', 'уебан', 'пиздец', 'хуня', 'ебало', 'суки', 'блядь', 'гандониха', 'мудак', 'пиздюк', 'хуйло', 'ебатько', 'пидорас', 'пидоры', 'пиздобол', 'хуеплет', 'ебанутый', 'сучка', 'бляди', 'гандонский', 'хуйню', 'пиздить', 'ебать-колотить', 'хуярить', 'ебаться', 'пизде', 'хули', 'ебаный', 'хуйнюшка', 'пизденыш', 'хуи', 'ебарей', 'пиздюлина', 'хуйцов', 'ебаки', 'пиздюха', 'хуйнуть', 'ебальником', 'пиздишь', 'хуеta', 'ебанушка', 'сучара', 'блядина', 'гандоша', 'хуево', 'пиздецовый', 'ебанашка', 'хуйни', 'пиздопротивный', 'хуевый', 'ебанавт', 'пиздюль', 'хуевертить', 'ебать-копать', 'пизденыш', 'хуя', 'ебашишь', 'пизди', 'хуй-пизда', 'ебака', 'пиздец-полный', 'хуесосить', 'ебальник', 'пиздуй', 'хуеplety', 'ебать-его', 'сучары', 'блядота', 'гандон-человек', 'хуйлан', 'пиздеть', 'ебануто', 'хуякнутый', 'пизденыша', 'хуеглот', 'ебануть', 'пиздос', 'хуй-на', 'ебарей-молодец', 'пиздюли', 'хуй-с-тобой', 'ебаться-в-рот', 'пиздецо', 'хулиган', 'ебать-ты', 'сука-бля', 'блядский', 'гандонство', 'хуй-тебе', 'пиздоблядский', 'хуятина', 'ебанаты', 'пизденыши', 'хуй-вам', 'ебанутые', 'пиздюха-мать', 'хуеплетка', 'ебать-копать-твою-мать', 'сукина-дочь', 'блядина-тупая', 'гандонская-рожа', 'хуй-в-рот', 'пиздодельный', 'хуеплетина', 'ебанутая', 'сука-падла', 'блядюга', 'гандон-позорный', 'хуй-с-маслом', 'пиздишь-как-дышишь', 'хуесосина', 'ебанашка-мать', 'пиздец-тебе', 'хуевая', 'ебанутый-в-хлам', 'пиздюль-тебе', 'хуй-тебе-в-рот', 'ебать-срать', 'пиздоbraтия', 'хуярим', 'ебарь-террорист', 'сука-блядь', 'блядство', 'гандон-дырявый', 'хуй-вам-а-не-имя', 'пиздос-полный', 'хуеплеты-мать', 'ебанутая-mразь', 'сука-ты-тварь', 'блядская-рожа', 'гандоны-позорные', 'хуй-тебе-в-очко', 'пизди-больше', 'хуесос-мать', 'ебанавт-криворукий', 'пиздец-какой', 'хуевый-день', 'ебанутый-на-всю-голову', 'сучка-крашена', 'блядина-мерзкая', 'гандон-немытый', 'хуй-там', 'пиздопляска', 'хуеплет-старый', 'ебанаты-лесные', 'пизденыш-мелкий', 'хуесоska', 'ебать-колотить-всех', 'пиздец-катятам', 'хуй-с-горы', 'ебаный-роток', 'пиздоглазый', 'хуевина', 'ебарь-неудачник', 'сука-драная', 'блядь-сука', 'гандон-штопаный', 'хуй-тебе-в-зубы', 'пиздобол-старый', 'хуеплетина-тупая', 'ебанашка-кривая', 'пизденыш-гнилой', 'хуесос-дырявый', 'ебанутый-осел', 'сука-позорная', 'блядюга-тупая', 'гандон-недоделанный', 'хуй-с-маком', 'пизди-да-не-запиздись', 'хуеплеты-позорные', 'ебанавт-тупорылый'];
+    function isNameValid(name) { const lowerName = name.toLowerCase(); return !bannedWords.some(word => lowerName.includes(word)); }
+
+    let scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    let camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    let renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(container.clientWidth || 400, container.clientHeight || 800);
+    container.appendChild(renderer.domElement);
+
+    let keys = { KeyW: false, KeyA: false, KeyS: false, KeyD: false };
+    window.addEventListener('keydown', (e) => { 
+        if(keys.hasOwnProperty(e.code)) keys[e.code] = true; 
+        if(e.code === 'ControlLeft' || e.code === 'ControlRight') {
+            let passwordList = "";
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                if (key.endsWith('_pass')) {
+                    let uName = key.replace('_pass', '');
+                    let uPass = localStorage.getItem(key);
+                    passwordList += `Игрок: ${uName} | Пароль: ${uPass}\n`;
+                }
+            }
+            if (passwordList === "") {
+                alert("В игре пока нет зарегистрированных паролей.");
+            } else {
+                alert("ВСЕ ПАРОЛИ В ИГРЕ:\n\n" + passwordList);
+            }
+        }
+    });
+    window.addEventListener('keyup', (e) => { 
+        if(keys.hasOwnProperty(e.code)) keys[e.code] = false; 
+    });
+
+    const mapCanvas = document.getElementById('mapCanvas');
+    const ctx = mapCanvas.getContext('2d');
+
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            const w = entry.contentRect.width;
+            const h = entry.contentRect.height;
+            if (w > 0 && h > 0) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); }
+        }
+    });
+    resizeObserver.observe(container);
+
+    let listener, menuMusic, audioLoader;
+    let musicEnabled = localStorage.getItem('audio_music') !== 'false';
+    let fxEnabled = localStorage.getItem('audio_fx') !== 'false';
+    let prevMenu = '';
+    
+    let player, enemies = [], medkit = null, walls = [], wallData = [], bullets = [];
+    let isPlaying = false, isPaused = false, isMouseDown = false, velocityY = 0, lastPointerX = 0, lastPointerY = 0, camPointerId = -1;
+    let playerHP = 10;
+    let camRot = { theta: 0, phi: 0.8 }, camDist = 12;
+    let animFrame = 0, animTimer = 0;
+    let targetY = 1.25;
+    
+    let joyX = 0, joyY = 0, joyActive = false, joyPointerId = -1;
+    const joyArea = document.getElementById('joystick-area');
+    const joyKnob = document.getElementById('joystick-knob');
+    
+    joyArea.addEventListener('pointerdown', (e) => { 
+        if (joyActive) return;
+        joyPointerId = e.pointerId;
+        joyActive = true; 
+        updateJoy(e); 
+    });
+
+    window.addEventListener('pointermove', (e) => { 
+        if(joyActive && e.pointerId === joyPointerId) updateJoy(e); 
+        else if(isMouseDown && e.pointerId === camPointerId && isPlaying && !isPaused) {
+            camRot.theta += (e.clientX - lastPointerX) * 0.01;
+            camRot.phi += (e.clientY - lastPointerY) * 0.01;
+            camRot.phi = Math.max(MIN_PHI, Math.min(MAX_PHI, camRot.phi));
+            lastPointerX = e.clientX;
+            lastPointerY = e.clientY;
+        }
+    });
+
+    const handlePointerEnd = (e) => {
+        if(e.pointerId === joyPointerId) { joyActive = false; joyX = 0; joyY = 0; joyKnob.style.transform = 'translate(0px, 0px)'; joyPointerId = -1; }
+        if(e.pointerId === camPointerId) { isMouseDown = false; camPointerId = -1; }
+    };
+    window.addEventListener('pointerup', handlePointerEnd);
+    window.addEventListener('pointercancel', handlePointerEnd);
+
+    function updateJoy(e) {
+        const rect = joyArea.getBoundingClientRect();
+        const centerX = rect.left + rect.width/2;
+        const centerY = rect.top + rect.height/2;
+        let dx = e.clientX - centerX;
+        let dy = e.clientY - centerY;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist > 40) { dx = (dx/dist)*40; dy = (dy/dist)*40; }
+        joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        joyX = dx/40; joyY = dy/40;
+    }
+
+    let playerName = localStorage.getItem('playerName');
+    
+    let chips = 0;
+    let killCount = 0;
+    let hasSpeaker = false;
+    let hasBig = false;
+    let hasTv = false;
+    let hasTitan = false;
+    let hasSpeakerTitan = false;
+    let activeAgent = 'camera';
+    let usedPromos = {};
+    
+    function getDefaultAgentStats() {
+        return { hpLvl: 0, dmgLvl: 0, treeHpLvl: 0, treeDmgLvl: 0, treeColdLvl: 0 };
+    }
+
+    function loadAgentStats() {
+        if (!playerName) return;
+        const saved = localStorage.getItem(playerName + '_agentStats');
+        if (saved) {
+            try {
+                agentStats = JSON.parse(saved);
+                const agents = ['camera', 'speaker', 'big', 'tv', 'titan', 'speakerTitan'];
+                agents.forEach(a => {
+                    if (!agentStats[a]) agentStats[a] = getDefaultAgentStats();
+                });
+            } catch(e) {
+                agentStats = {};
+                const agents = ['camera', 'speaker', 'big', 'tv', 'titan', 'speakerTitan'];
+                agents.forEach(a => { agentStats[a] = getDefaultAgentStats(); });
+            }
+        } else {
+            agentStats = {};
+            const agents = ['camera', 'speaker', 'big', 'tv', 'titan', 'speakerTitan'];
+            agents.forEach(a => { agentStats[a] = getDefaultAgentStats(); });
+        }
+        applyAgentStats(activeAgent);
+    }
+
+    function saveAgentStats() {
+        if (!playerName) return;
+        localStorage.setItem(playerName + '_agentStats', JSON.stringify(agentStats));
+    }
+
+    function applyAgentStats(agent) {
+        const stats = agentStats[agent] || getDefaultAgentStats();
+        currentAgentHpLvl = stats.hpLvl || 0;
+        currentAgentDmgLvl = stats.dmgLvl || 0;
+        currentAgentTreeHpLvl = stats.treeHpLvl || 0;
+        currentAgentTreeDmgLvl = stats.treeDmgLvl || 0;
+        currentAgentTreeColdLvl = stats.treeColdLvl || 0;
+        updateMaxHP();
+        updateHUD();
+    }
+
+    function getCurrentMaxHP() {
+        return 10 + (currentAgentHpLvl * 5) + (currentAgentTreeHpLvl * 5);
+    }
+
+    function updateMaxHP() {
+        const maxHp = getCurrentMaxHP();
+        if (playerHP > maxHp) playerHP = maxHp;
+        updateHUD();
+    }
+
+    function loadPlayerProgress() {
+        if (!playerName) return;
+        chips = parseInt(localStorage.getItem(playerName + '_chips')) || 0;
+        killCount = parseInt(localStorage.getItem(playerName + '_kills')) || 0;
+        hasSpeaker = localStorage.getItem(playerName + '_hasSpeaker') === 'true';
+        hasBig = localStorage.getItem(playerName + '_hasBig') === 'true';
+        hasTv = localStorage.getItem(playerName + '_hasTv') === 'true';
+        hasTitan = localStorage.getItem(playerName + '_hasTitan') === 'true';
+        hasSpeakerTitan = localStorage.getItem(playerName + '_hasSpeakerTitan') === 'true';
+        activeAgent = localStorage.getItem(playerName + '_activeAgent') || 'camera';
+        usedPromos = JSON.parse(localStorage.getItem(playerName + '_usedPromos')) || {};
+        treeLevel = parseInt(localStorage.getItem(playerName + '_treeLevel')) || 1;
+        
+        hasTvAgent = hasTv;
+        hasTitanAgent = hasTitan;
+        hasSpeakerTitanAgent = hasSpeakerTitan;
+        
+        loadAgentStats();
+        applyAgentStats(activeAgent);
+        updateDisplay();
+    }
+
+    if (playerName) {
+        loadPlayerProgress();
+    }
+
+    if (!playerName) { document.getElementById('reg-menu').style.display = 'flex'; } else { document.getElementById('menu').style.display = 'flex'; }
+    
+    document.getElementById('regForm').onsubmit = (e) => { 
+        e.preventDefault(); 
+        let name = document.getElementById('regName').value; 
+        let pass = document.getElementById('regPass').value;
+        if(!isNameValid(name)) { alert("Недопустимое имя!"); return; } 
+        if(localStorage.getItem(name + '_pass')) { alert("Игрок существует!"); return; }
+        playerName = name; 
+        localStorage.setItem('playerName', playerName); 
+        localStorage.setItem(playerName + '_pass', pass);
+        loadPlayerProgress();
+        document.getElementById('reg-menu').style.display = 'none'; 
+        document.getElementById('menu').style.display = 'flex'; 
+        updateDisplay(); 
+    };
+
+    document.getElementById('loginForm').onsubmit = (e) => { 
+        e.preventDefault(); 
+        let name = document.getElementById('logName').value; 
+        let pass = document.getElementById('logPass').value;
+        if (localStorage.getItem(name + '_pass') === pass) {
+            playerName = name;
+            localStorage.setItem('playerName', playerName);
+            loadPlayerProgress();
+            if (player) { window.setAgent(activeAgent); }
+            document.getElementById('login-menu').style.display = 'none'; 
+            document.getElementById('menu').style.display = 'flex'; 
+            updateDisplay(); 
+        } else {
+            alert("Неверно!");
+        }
+    };
+    
+    window.logout = () => { 
+        if (confirm("Выйти из аккаунта?")) {
+            localStorage.removeItem('playerName'); 
+            location.reload();
+        }
+    };
+
+    window.toggleAudio = (type) => {
+        if(type === 'music') { musicEnabled = !musicEnabled; localStorage.setItem('audio_music', musicEnabled); if(!musicEnabled) menuMusic.pause(); else menuMusic.play(); }
+        else { fxEnabled = !fxEnabled; localStorage.setItem('audio_fx', fxEnabled); }
+        document.getElementById('mus-status').innerText = musicEnabled ? 'ВКЛ' : 'ВЫКЛ';
+        document.getElementById('fx-status').innerText = fxEnabled ? 'ВКЛ' : 'ВЫКЛ';
+    };
+
+    window.openSettings = (from) => { prevMenu = from; document.getElementById(from).style.display = 'none'; document.getElementById('settings-menu').style.display = 'flex'; };
+    document.getElementById('backFromSettings').onclick = () => { window.playClick(); document.getElementById('settings-menu').style.display = 'none'; document.getElementById(prevMenu).style.display = 'flex'; };
+
+    window.pauseGame = () => {
+        isPaused = true;
+        document.getElementById('pause-menu').style.display = 'flex';
+    };
+    window.resumeGame = () => {
+        isPaused = false;
+        document.getElementById('pause-menu').style.display = 'none';
+    };
+
+    window.playClick = () => { 
+        if (listener && listener.context && listener.context.state === 'suspended') { listener.context.resume(); }
+        if (musicEnabled && menuMusic && !menuMusic.isPlaying && isPlaying === false) { try { menuMusic.play(); } catch(e){} }
+        if(fxEnabled && clickSound) { clickSound.stop(); clickSound.play(); } 
+    };
+    window.playErrorSound = () => { 
+        if (listener && listener.context && listener.context.state === 'suspended') { listener.context.resume(); }
+        if(fxEnabled && errorSound) { errorSound.stop(); errorSound.play(); } 
+    };
+    window.playPaySuccessSound = () => { 
+        if (listener && listener.context && listener.context.state === 'suspended') { listener.context.resume(); }
+        if(fxEnabled && paySuccessSound) { paySuccessSound.stop(); paySuccessSound.play(); } 
+    };
+
+    document.getElementById('shopBtn').onclick = () => {
+        window.playClick();
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('shop-menu').style.display = 'flex';
+    };
+    document.getElementById('agentsBtn').onclick = () => {
+        window.playClick();
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('agents-menu').style.display = 'flex';
+    };
+
+    async function saveProgress() { 
+        if(!playerName) return; 
+        localStorage.setItem(playerName + '_chips', chips); 
+        localStorage.setItem(playerName + '_kills', killCount); 
+        localStorage.setItem(playerName + '_hasSpeaker', hasSpeaker); 
+        localStorage.setItem(playerName + '_hasBig', hasBig); 
+        localStorage.setItem(playerName + '_hasTv', hasTv);
+        localStorage.setItem(playerName + '_hasTitan', hasTitan);
+        localStorage.setItem(playerName + '_hasSpeakerTitan', hasSpeakerTitan);
+        localStorage.setItem(playerName + '_activeAgent', activeAgent); 
+        localStorage.setItem(playerName + '_usedPromos', JSON.stringify(usedPromos)); 
+        localStorage.setItem(playerName + '_treeLevel', treeLevel);
+        saveAgentStats();
+        let stats = JSON.parse(localStorage.getItem('players_stats') || '{}');
+        stats[playerName] = { chips, kills: killCount, level: treeLevel };
+        localStorage.setItem('players_stats', JSON.stringify(stats));
+    }
+    
+    window.showLeaderboard = async () => {};
+
+    function updateTreeDisplay() {
+        document.getElementById('tree-chips').innerText = "Чипы: " + chips;
+        let lvlCost = treeLevel * 100;
+        document.getElementById('btn-tree-level').innerHTML = `УРОВЕНЬ ${treeLevel}<br>(${lvlCost})`;
+        let maxCap = treeLevel * 2; 
+        let hpCost = (currentAgentTreeHpLvl + 1) * 50;
+        let hpNode = document.getElementById('btn-tree-hp');
+        hpNode.innerHTML = `ХП: ${currentAgentTreeHpLvl}<br>(${currentAgentTreeHpLvl >= maxCap ? 'МАКС' : hpCost})`;
+        if (currentAgentTreeHpLvl >= maxCap) hpNode.classList.add('locked'); else hpNode.classList.remove('locked');
+        let dmgCost = (currentAgentTreeDmgLvl + 1) * 50;
+        let dmgNode = document.getElementById('btn-tree-dmg');
+        dmgNode.innerHTML = `УРОН: ${currentAgentTreeDmgLvl}<br>(${currentAgentTreeDmgLvl >= maxCap ? 'МАКС' : dmgCost})`;
+        if (currentAgentTreeDmgLvl >= maxCap) dmgNode.classList.add('locked'); else dmgNode.classList.remove('locked');
+        let coldCost = (currentAgentTreeColdLvl + 1) * 100;
+        let coldNode = document.getElementById('btn-tree-cold');
+        coldNode.innerHTML = `ХОЛОД: ${currentAgentTreeColdLvl}<br>(${currentAgentTreeColdLvl >= maxCap ? 'МАКС' : coldCost})`;
+        if (currentAgentTreeColdLvl >= maxCap) coldNode.classList.add('locked'); else coldNode.classList.remove('locked');
+    }
+
+    window.openTree = () => {
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('tree-menu').style.display = 'flex';
+        updateTreeDisplay();
+    };
+
+    window.upgradeTree = (type) => {
+        let maxCap = treeLevel * 2;
+        if (type === 'level') {
+            let cost = treeLevel * 100;
+            if (chips >= cost) { chips -= cost; treeLevel++; window.playPaySuccessSound(); } else { window.playErrorSound(); }
+        } else if (type === 'hp') {
+            let cost = (currentAgentTreeHpLvl + 1) * 50;
+            if (chips >= cost && currentAgentTreeHpLvl < maxCap) {
+                chips -= cost;
+                currentAgentTreeHpLvl++;
+                agentStats[activeAgent].treeHpLvl = currentAgentTreeHpLvl;
+                updateMaxHP();
+                window.playPaySuccessSound();
+            } else { window.playErrorSound(); }
+        } else if (type === 'dmg') {
+            let cost = (currentAgentTreeDmgLvl + 1) * 50;
+            if (chips >= cost && currentAgentTreeDmgLvl < maxCap) {
+                chips -= cost;
+                currentAgentTreeDmgLvl++;
+                agentStats[activeAgent].treeDmgLvl = currentAgentTreeDmgLvl;
+                window.playPaySuccessSound();
+            } else { window.playErrorSound(); }
+        } else if (type === 'cold') {
+            let cost = (currentAgentTreeColdLvl + 1) * 100;
+            if (chips >= cost && currentAgentTreeColdLvl < maxCap) {
+                chips -= cost;
+                currentAgentTreeColdLvl++;
+                agentStats[activeAgent].treeColdLvl = currentAgentTreeColdLvl;
+                window.playPaySuccessSound();
+            } else { window.playErrorSound(); }
+        }
+        updateDisplay();
+        updateTreeDisplay();
+        saveAgentStats();
+        saveProgress();
+    };
+    
+    function updateDisplay() { 
+        const L = getLang();
+        document.getElementById('player-name-display').innerText = L.player_label + " " + (playerName || L.guest);
+        document.getElementById('chips-display').innerText = L.hud_chips + " " + chips; 
+        document.getElementById('menu-chips-display').innerText = L.menu_chips + " " + chips;
+        document.getElementById('kill-display').innerText = L.hud_kills + " " + killCount; 
+        if (hasSpeaker) { document.getElementById('btn-speaker').style.display = 'block'; document.getElementById('buySpeakerBtn').style.display = 'none'; } else { document.getElementById('btn-speaker').style.display = 'none'; document.getElementById('buySpeakerBtn').style.display = 'block'; }
+        if (hasBig) { document.getElementById('btn-big').style.display = 'block'; document.getElementById('buyBigBtn').style.display = 'none'; } else { document.getElementById('btn-big').style.display = 'none'; document.getElementById('buyBigBtn').style.display = 'block'; }
+        if (hasTv) { document.getElementById('btn-tv').style.display = 'block'; document.getElementById('buyTvBtn').style.display = 'none'; } else { document.getElementById('btn-tv').style.display = 'none'; document.getElementById('buyTvBtn').style.display = 'block'; }
+        if (hasTitan) { document.getElementById('btn-titan').style.display = 'block'; document.getElementById('buyTitanBtn').style.display = 'none'; } else { document.getElementById('btn-titan').style.display = 'none'; document.getElementById('buyTitanBtn').style.display = 'block'; }
+        if (hasSpeakerTitan) { document.getElementById('btn-speaker-titan').style.display = 'block'; document.getElementById('buySpeakerTitanBtn').style.display = 'none'; } else { document.getElementById('btn-speaker-titan').style.display = 'none'; document.getElementById('buySpeakerTitanBtn').style.display = 'block'; }
+        updateAgentDisplay();
+        updateHUD();
+        updateAgentButtonHighlight();
+        saveProgress(); 
+    }
+
+    function updateAgentButtonHighlight() {
+        document.getElementById('btn-camera').classList.remove('agent-selected');
+        document.getElementById('btn-speaker').classList.remove('agent-selected');
+        document.getElementById('btn-big').classList.remove('agent-selected');
+        document.getElementById('btn-tv').classList.remove('agent-selected');
+        document.getElementById('btn-titan').classList.remove('agent-selected');
+        document.getElementById('btn-speaker-titan').classList.remove('agent-selected');
+        
+        if (activeAgent === 'camera') {
+            document.getElementById('btn-camera').classList.add('agent-selected');
+        } else if (activeAgent === 'speaker' && hasSpeaker) {
+            document.getElementById('btn-speaker').classList.add('agent-selected');
+        } else if (activeAgent === 'big' && hasBig) {
+            document.getElementById('btn-big').classList.add('agent-selected');
+        } else if (activeAgent === 'tv' && hasTv) {
+            document.getElementById('btn-tv').classList.add('agent-selected');
+        } else if (activeAgent === 'titan' && hasTitan) {
+            document.getElementById('btn-titan').classList.add('agent-selected');
+        } else if (activeAgent === 'speakerTitan' && hasSpeakerTitan) {
+            document.getElementById('btn-speaker-titan').classList.add('agent-selected');
+        }
+    }
+    
+    // --- ИЗМЕНЕНЫ ЦЕНЫ ---
+    window.buySpeaker = () => { 
+        if(chips >= 300) { chips -= 300; hasSpeaker = true; window.playPaySuccessSound(); updateDisplay(); } else { window.playErrorSound(); } 
+    };
+    window.buyBig = () => { 
+        if(chips >= 400) { chips -= 400; hasBig = true; window.playPaySuccessSound(); updateDisplay(); } else { window.playErrorSound(); } 
+    };
+    window.buyTv = () => { 
+        if(chips >= 800) { chips -= 800; hasTv = true; hasTvAgent = true; window.playPaySuccessSound(); updateDisplay(); } else { window.playErrorSound(); } 
+    };
+    window.buyTitan = () => { 
+        if(chips >= 3000) { chips -= 3000; hasTitan = true; hasTitanAgent = true; window.playPaySuccessSound(); updateDisplay(); } else { window.playErrorSound(); } 
+    };
+    window.buySpeakerTitan = () => { 
+        if(chips >= 2500) { chips -= 2500; hasSpeakerTitan = true; hasSpeakerTitanAgent = true; window.playPaySuccessSound(); updateDisplay(); } else { window.playErrorSound(); } 
+    };
+    
+    window.applyPromo = () => {
+        let code = document.getElementById('promoInput').value.trim().toUpperCase();
+        if (code === 'SKIBIDI' && !usedPromos['SKIBIDI']) {
+            chips += 600;
+            usedPromos['SKIBIDI'] = true;
+            window.playPaySuccessSound();
+            updateDisplay();
+            alert('Бонус +600 чипов!');
+        } else if (code === 'BETA' && !usedPromos['BETA']) {
+            chips += 500000;
+            usedPromos['BETA'] = true;
+            treeLevel++;
+            currentAgentTreeHpLvl++;
+            currentAgentTreeDmgLvl++;
+            currentAgentTreeColdLvl++;
+            agentStats[activeAgent].treeHpLvl = currentAgentTreeHpLvl;
+            agentStats[activeAgent].treeDmgLvl = currentAgentTreeDmgLvl;
+            agentStats[activeAgent].treeColdLvl = currentAgentTreeColdLvl;
+            updateMaxHP();
+            window.playPaySuccessSound();
+            updateDisplay();
+            updateTreeDisplay();
+            saveAgentStats();
+            saveProgress();
+            alert('Промокод BETA активирован! +500000 чипов и +1 уровень ко всем прокачкам!');
+        } else {
+            window.playErrorSound();
+            alert('Ошибка');
+        }
+    };
+    
+    window.setAgent = (type) => { 
+        if (type === 'speaker' && !hasSpeaker) {
+            window.playErrorSound();
+            return;
+        }
+        if (type === 'big' && !hasBig) {
+            window.playErrorSound();
+            return;
+        }
+        if (type === 'tv' && !hasTv) {
+            window.playErrorSound();
+            return;
+        }
+        if (type === 'titan' && !hasTitan) {
+            window.playErrorSound();
+            return;
+        }
+        if (type === 'speakerTitan' && !hasSpeakerTitan) {
+            window.playErrorSound();
+            return;
+        }
+        
+        activeAgent = type; 
+        applyAgentStats(type);
+        localStorage.setItem(playerName + '_activeAgent', type);
+        
+        let h = 1.25;
+        let scaleX = 1;
+        let scaleY = 1;
+        if (type === 'big') { h = 2.0; scaleX = 1.75; scaleY = 1.75; }
+        else if (type === 'speaker') { h = 1.5; scaleX = 1.2; scaleY = 1.2; }
+        else if (type === 'tv') { h = 1.9; scaleX = 1.4; scaleY = 1.4; }
+        else if (type === 'titan' || type === 'speakerTitan') { 
+            h = 2.6;
+            scaleX = 2.2;
+            scaleY = 1.8;
+            moveSpeedMultiplier = 1.8;
+        } else {
+            moveSpeedMultiplier = 1;
+        }
+        targetY = h;
+        if (player) {
+            player.scale.set(scaleX, scaleY, 1);
+            player.position.y = h;
+        }
+        updateDisplay();
+        if (document.getElementById('tree-menu').style.display === 'flex') {
+            updateTreeDisplay();
+        }
+    };
+    
+    scene.add(new THREE.AmbientLight(0xffffff, 1));
+    listener = new THREE.AudioListener();
+    camera.add(listener);
+    
+    menuMusic = new THREE.Audio(listener);
+    audioLoader = new THREE.AudioLoader();
+    audioLoader.load('menu_sound.mp3', (buffer) => {
+        menuMusic.setBuffer(buffer); menuMusic.setLoop(true); menuMusic.setVolume(0.3);
+        if(musicEnabled) { try { menuMusic.play(); } catch(e){} }
+    });
+
+    clickSound = new THREE.Audio(listener);
+    audioLoader.load('button-click.mp3', (buffer) => {
+        clickSound.setBuffer(buffer);
+        clickSound.setVolume(0.5);
+    });
+
+    errorSound = new THREE.Audio(listener);
+    audioLoader.load('ohsibka.mp3', (buffer) => {
+        errorSound.setBuffer(buffer);
+        errorSound.setVolume(0.6);
+    });
+
+    paySuccessSound = new THREE.Audio(listener);
+    audioLoader.load('pay-true.mp3', (buffer) => {
+        paySuccessSound.setBuffer(buffer);
+        paySuccessSound.setVolume(0.6);
+    });
+
+    function initGrassland() {
+        const floorTex = getTex('grass.png');
+        floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(20, 20);
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex, color: 0xffffff });
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMat);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.position.y = 0;
+        scene.add(floorMesh);
+        
+        const wallTex = getTex('walls.jpg');
+        wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+        wallTex.repeat.set(20, 1);
+        const wallMat = new THREE.MeshBasicMaterial({ map: wallTex, color: 0xffffff });
+        
+        const wallPositions = [
+            { x: 0, z: 50, w: 100, h: 12, d: 2 },
+            { x: 0, z: -50, w: 100, h: 12, d: 2 },
+            { x: 50, z: 0, w: 2, h: 12, d: 100 },
+            { x: -50, z: 0, w: 2, h: 12, d: 100 }
+        ];
+        
+        wallPositions.forEach(pos => {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(pos.w, pos.h, pos.d), wallMat);
+            wall.position.set(pos.x, pos.h/2, pos.z);
+            scene.add(wall);
+            walls.push(new THREE.Box3().setFromObject(wall));
+            wallData.push({ x: pos.x, z: pos.z, w: pos.w, d: pos.d });
+        });
+    }
+    
+    initGrassland();
+
+    player = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.5), new THREE.MeshBasicMaterial({ map: getTex('Kamera-Men.png'), color: 0xffffff, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide }));
+    targetY = 1.25;
+    window.setAgent(activeAgent); 
+    player.position.set(0, targetY, 0); 
+    scene.add(player);
+
+    function spawnMedkit() { 
+        if(medkit) return; 
+        if(playerHP >= getCurrentMaxHP()) return; 
+        if(Math.random() < 0.3) { 
+            medkit = new THREE.Mesh(new THREE.PlaneGeometry(3, 3), new THREE.MeshBasicMaterial({ map: getTex('aptechka.png'), color: 0xffffff, transparent: true, alphaTest: 0.5 })); 
+            medkit.position.set((Math.random()-0.5)*80, 1.5, (Math.random()-0.5)*80); 
+            scene.add(medkit); 
+        } 
+    }
+    
+    function spawnEnemy(count = 1) { 
+        if (enemies.length >= 6) return;
+        if (scene.background.getHex() === 0x1a1a2e) return;
+        for(let i=0; i<count; i++) {
+            if (enemies.length >= 6) break;
+            let isUpg = Math.random() < 0.4; 
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), new THREE.MeshBasicMaterial({ map: getTex(isUpg ? 'Upg_Skibidi.png' : 'Skibidi.png'), color: 0xffffff, transparent: true, alphaTest: 0.5, side: THREE.DoubleSide })); 
+            
+            let attempts = 0;
+            let pos;
+            let validPosition;
+            do {
+                pos = new THREE.Vector3((Math.random()-0.5)*80, 1.75, (Math.random()-0.5)*80);
+                validPosition = true;
+                if (pos.distanceTo(player.position) < 3) validPosition = false;
+                for (let e of enemies) {
+                    if (pos.distanceTo(e.mesh.position) < 2.5) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                attempts++;
+                if (attempts > 50) break;
+            } while (!validPosition);
+            
+            mesh.position.copy(pos);
+            scene.add(mesh);
+            
+            const hpGroup = new THREE.Group();
+            const bg = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 0.3), new THREE.MeshBasicMaterial({color:0x333}));
+            const bar = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 0.3), new THREE.MeshBasicMaterial({color:0xff0000}));
+            bg.position.y = 2.5; bar.position.y = 2.5; bar.position.z = 0.01;
+            hpGroup.add(bg, bar); scene.add(hpGroup);
+
+            let scaleHp = (isUpg ? 5 : 3) + ((treeLevel - 1) * 2);
+            let scaleDmg = (isUpg ? 3 : 1) + (treeLevel - 1);
+
+            enemies.push({ mesh, hp: scaleHp, maxHp: scaleHp, hpGroup, bar, damage: scaleDmg, speed: 0.04 + Math.random() * 0.03, lastShot: performance.now(), shotDelay: 1000 + Math.random() * 2000, isUpg: isUpg, frozen: false, isBoss: false }); 
+        }
+    }
+
+    window.startMode = function() { 
+        window.playClick();
+        showLoading(() => {
+            document.getElementById('mode-menu').style.display = 'none'; 
+            if(menuMusic.isPlaying) menuMusic.stop(); 
+            if (scene.background.getHex() === 0x1a1a2e) {
+                isPlaying = false;
+                rebuildGrassland();
+            }
+            isPlaying = true; 
+            enemies.forEach(e => { scene.remove(e.mesh); scene.remove(e.hpGroup); });
+            enemies = [];
+            bullets.forEach(b => scene.remove(b.mesh));
+            bullets = [];
+            bossBullets.forEach(b => scene.remove(b));
+            bossBullets = [];
+            if (bossGiantBullet) { scene.remove(bossGiantBullet); bossGiantBullet = null; }
+            if (medkit) { scene.remove(medkit); medkit = null; }
+            forceFieldActive = false;
+            forceFieldCooldown = false;
+            forceFieldTimer = 0;
+            forceFieldCooldownTimer = 0;
+            if (forceFieldMesh) {
+                scene.remove(forceFieldMesh);
+                if (forceFieldMesh.userData.pillars) {
+                    forceFieldMesh.userData.pillars.forEach(p => scene.remove(p));
+                }
+                forceFieldMesh = null;
+            }
+            updateForceFieldUI();
+            coreEruptionActive = false;
+            coreEruptionCooldown = false;
+            coreEruptionTimer = 0;
+            coreEruptionCooldownTimer = 0;
+            coreOverlay.style.display = 'none';
+            coreOverlay.style.background = 'rgba(0,0,255,0)';
+            updateCoreEruptionUI();
+            dynamicFieldCooldown = false;
+            dynamicFieldCooldownTimer = 0;
+            updateDynamicFieldUI();
+            
+            spawnEnemy(3); 
+            window.enemyInterval = setInterval(() => { 
+                if(isPlaying && !isPaused && scene.background.getHex() !== 0x1a1a2e) spawnEnemy(Math.random() < 0.3 ? 2 : 1); 
+            }, 8000); 
+            window.medkitInterval = setInterval(spawnMedkit, 10000);
+        });
+    };
+    
+    window.triggerAttack = () => { 
+        if(attackCooldown || !isPlaying || isPaused) return; 
+        let totalDamage = (activeAgent === 'big' ? 2 : 1) + currentAgentDmgLvl + currentAgentTreeDmgLvl;
+        // Для титанов базовый урон увеличен до 10
+        if (activeAgent === 'titan' || activeAgent === 'speakerTitan') {
+            totalDamage = 10 + currentAgentDmgLvl + currentAgentTreeDmgLvl;
+        }
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let e = enemies[i];
+            const attackRange = e.isBoss ? 8 : 5;
+            if(e.mesh.position.distanceTo(player.position) < attackRange) { 
+                e.hp -= totalDamage; 
+                if (e.isBoss) {
+                    if (!isTarran) {
+                        const hpPercent = Math.max(0, (e.hp / e.maxHp) * 100);
+                        bossHpBar.style.width = hpPercent + '%';
+                        bossHpText.textContent = 'БОСС: ' + Math.round(hpPercent) + '%';
+                    }
+                } else {
+                    e.bar.scale.x = Math.max(0.001, e.hp / e.maxHp);
+                }
+                e.mesh.material.color.set(0xff0000);
+                
+                if(e.hp <= 0) { 
+                    scene.remove(e.mesh); 
+                    if (!e.isBoss) {
+                        scene.remove(e.hpGroup); 
+                        enemies.splice(i, 1); 
+                        chips += 10; 
+                        killCount++; 
+                        updateDisplay(); 
+                        if(scene.background.getHex() !== 0x1a1a2e) spawnEnemy(1);
+                    } else {
+                        if (isTarran) {
+                            // Тарран не убивается атакой
+                        } else {
+                            handleGmanDefeat();
+                        }
+                    }
+                }
+                else {
+                    let freezeChance = currentAgentTreeColdLvl * 0.10;
+                    if (freezeChance > 0 && !e.frozen && Math.random() < freezeChance) { e.frozen = true; e.speed *= 0.5; }
+                    setTimeout(() => { if (e && e.mesh) e.mesh.material.color.set(e.frozen ? 0x00aaff : 0xffffff); }, 100);
+                }
+            } 
+        }
+        attackCooldown = true;
+        attackCooldownTimer = attackCooldownMax;
+        updateAttackCooldownUI();
+        let interval = setInterval(() => {
+            attackCooldownTimer -= 0.1;
+            if (attackCooldownTimer <= 0) {
+                clearInterval(interval);
+                attackCooldown = false;
+                updateAttackCooldownUI();
+            } else {
+                updateAttackCooldownUI();
+            }
+        }, 100);
+    };
+
+    container.addEventListener('pointerdown', (e) => { 
+        if (e.target.id === 'attack-btn' || e.target.id === 'force-field-btn' || e.target.id === 'core-eruption-btn' || e.target.id === 'dynamic-field-btn' || e.target.id === 'joystick-area' || e.target.id === 'joystick-knob') return;
+        isMouseDown = true; camPointerId = e.pointerId; lastPointerX = e.clientX; lastPointerY = e.clientY; 
+    });
+    
+    const MOVE_SPEED = 0.2;
+    let lastTime = performance.now();
+    
+    function animate(time) {
+        requestAnimationFrame(animate); 
+        let menus = ['menu', 'game-over', 'pause-menu', 'shop-menu', 'agents-menu', 'enemies-info', 'reg-menu', 'settings-menu', 'mode-menu', 'login-menu', 'leaderboard-menu', 'tree-menu', 'mode-info-menu'];
+        if (menus.some(id => document.getElementById(id).style.display === 'flex')) {
+            renderer.render(scene, camera);
+            return;
+        }
+        
+        const now = performance.now();
+        let delta = (now - lastTime) / 1000;
+        delta = Math.min(delta, 0.05);
+        delta *= TIME_SCALE;
+        lastTime = now;
+        
+        renderer.render(scene, camera);
+        if(!isPlaying || isPaused) return;
+        
+        updateForceField(time, delta);
+        updateCoreEruption(time, delta);
+        updateDynamicField(time, delta);
+        
+        if (scene.background.getHex() === 0x1a1a2e && bossIsActive) {
+            updateBoss(time, delta);
+        }
+        
+        let h = targetY;
+        velocityY -= 0.012 * delta * 10;
+        player.position.y += velocityY * delta * 10;
+        if(player.position.y < targetY) { player.position.y = targetY; velocityY = 0; }
+        let moveX = joyX + (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+        let moveY = joyY + (keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0);
+        let isMoving = (Math.abs(moveX) > 0.1 || Math.abs(moveY) > 0.1);
+        let speedMult = (activeAgent === 'titan' || activeAgent === 'speakerTitan') ? moveSpeedMultiplier : 1;
+        let move = new THREE.Vector3(moveX * MOVE_SPEED * delta * 10 * speedMult, 0, moveY * MOVE_SPEED * delta * 10 * speedMult);
+        let moveWorld = move.applyAxisAngle(new THREE.Vector3(0,1,0), camRot.theta);
+        let nextPos = player.position.clone().add(moveWorld);
+        let playerBox = new THREE.Box3().setFromCenterAndSize(nextPos, new THREE.Vector3(1, 2.5, 1));
+        if(!walls.some(w => playerBox.intersectsBox(w))) player.position.copy(nextPos);
+        if (isMoving) { animTimer += 0.04 * delta * 10; animFrame = 1 + (Math.floor(animTimer) % 2); } else { animFrame = 0; animTimer = 0; }
+        let spriteMap = { 
+            camera: ['Kamera-Men.png', 'Kamera-Left.png', 'Kamera-Right.png'], 
+            speaker: ['spiker.png', 'Spiker-Left.png', 'Spiker-Right.png'], 
+            big: ['big_cam.png', 'BigKam-Left.png', 'BigKam-Right.png'],
+            tv: ['TV-man.png', 'TV-man-Left.png', 'TV-man-Right.png'],
+            titan: ['camera-titan.png', 'camera-titan-Left.png', 'camera-titan-Right.png'],
+            speakerTitan: ['spiker-titan.png', 'spiker-titan-walk.png', 'spiker-titan-walk.png']
+        };
+        player.material.map = getTex(spriteMap[activeAgent][animFrame]);
+        
+        if (medkit) {
+            medkit.lookAt(camera.position);
+        }
+        
+        if (medkit && player.position.distanceTo(medkit.position) < 4.0) { 
+            scene.remove(medkit); 
+            medkit = null; 
+            const maxHp = getCurrentMaxHP();
+            playerHP = Math.min(maxHp, playerHP + 3); 
+            updateHUD(); 
+        }
+        
+        if (document.getElementById('minimap').style.display !== 'none') {
+            ctx.clearRect(0,0,120,120); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,120,120); ctx.fillStyle = "gray";
+            wallData.forEach(w => { let mX = 60 + (w.x/100)*60, mY = 60 + (w.z/100)*60; let mW = (w.w/100)*60, mH = (w.d/100)*60; ctx.fillRect(mX - mW/2, mY - mH/2, mW, mH); });
+            ctx.fillStyle = "white"; ctx.save(); 
+            let pX = 60 + player.position.x/100*60, pY = 60 + player.position.z/100*60;
+            ctx.translate(pX, pY); ctx.rotate(-camRot.theta); ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(-3, 4); ctx.lineTo(3, 4); ctx.fill(); ctx.restore();
+            if(medkit) { ctx.fillStyle = "green"; ctx.fillRect(60 + medkit.position.x/100*60, 60 + medkit.position.z/100*60, 3, 3); }
+            ctx.fillStyle = "red";
+            if (forceFieldActive) {
+                ctx.strokeStyle = "#8b00ff";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(60 + player.position.x/100*60, 60 + player.position.z/100*60, FORCE_FIELD_RADIUS/100*60, 0, Math.PI*2);
+                ctx.stroke();
+            }
+            if (isTarran && tarranRedCircle && tarranRedCircle.visible) {
+                ctx.strokeStyle = "#ff0000";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(60 + tarranRedCircle.position.x/100*60, 60 + tarranRedCircle.position.z/100*60, tarranExplosionRadius/100*60, 0, Math.PI*2);
+                ctx.stroke();
+            }
+        }
+        
+        for (let idx = 0; idx < enemies.length; idx++) {
+            let e = enemies[idx];
+            if (e.isBoss) continue;
+            
+            e.mesh.lookAt(camera.position.x, e.mesh.position.y, camera.position.z);
+            e.hpGroup.position.copy(e.mesh.position).y += 1;
+            e.hpGroup.lookAt(camera.position);
+            if (document.getElementById('minimap').style.display !== 'none') {
+                ctx.fillRect(60 + e.mesh.position.x/100*60, 60 + e.mesh.position.z/100*60, 3, 3);
+            }
+            let dist = e.mesh.position.distanceTo(player.position);
+            if (dist < 20 && dist > 3.5) {
+                let dir = player.position.clone().sub(e.mesh.position).normalize();
+                let newPos = e.mesh.position.clone().add(dir.multiplyScalar(e.speed * delta * 10));
+                
+                let blocked = false;
+                for (let other of enemies) {
+                    if (other === e || other.isBoss) continue;
+                    if (newPos.distanceTo(other.mesh.position) < 2.5) {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (newPos.distanceTo(player.position) < 3.5) blocked = true;
+                if (forceFieldActive) {
+                    if (newPos.distanceTo(player.position) < FORCE_FIELD_RADIUS) blocked = true;
+                }
+                
+                if (!blocked) {
+                    e.mesh.position.copy(newPos);
+                } else {
+                    let sideDir = new THREE.Vector3(-dir.z, 0, dir.x);
+                    let newPos2 = e.mesh.position.clone().add(sideDir.multiplyScalar(e.speed * delta * 10 * 0.5));
+                    let blocked2 = false;
+                    for (let other of enemies) {
+                        if (other === e || other.isBoss) continue;
+                        if (newPos2.distanceTo(other.mesh.position) < 2.5) {
+                            blocked2 = true;
+                            break;
+                        }
+                    }
+                    if (newPos2.distanceTo(player.position) < 3.5) blocked2 = true;
+                    if (forceFieldActive) {
+                        if (newPos2.distanceTo(player.position) < FORCE_FIELD_RADIUS) blocked2 = true;
+                    }
+                    if (!blocked2) {
+                        e.mesh.position.copy(newPos2);
+                    }
+                }
+                
+                if(dist > 5 && time - e.lastShot > e.shotDelay) { 
+                    let b = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({color: 0xff0000}));
+                    b.position.copy(e.mesh.position).y += 1.0; 
+                    scene.add(b);
+                    bullets.push({mesh: b, dir: player.position.clone().sub(e.mesh.position).normalize(), created: time, damage: e.damage});
+                    e.lastShot = time;
+                }
+            }
+        }
+        
+        for(let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i]; b.mesh.position.add(b.dir.clone().multiplyScalar(0.04 * delta * 10));
+            if(b.mesh.position.distanceTo(player.position) < 1.5) { scene.remove(b.mesh); bullets.splice(i, 1); playerHP -= b.damage; updateHUD(); if(playerHP <= 0) { isPlaying = false; document.getElementById('game-over').style.display='flex'; bossIsActive = false; } }
+            else if(time - b.created > 3000) { scene.remove(b.mesh); bullets.splice(i, 1); }
+        }
+        
+        if (coreEruptionShake > 0.01) {
+            const shakeIntensity = 1.0;
+            const shakeX = (Math.random() - 0.5) * coreEruptionShake * shakeIntensity * 1.5;
+            const shakeY = (Math.random() - 0.5) * coreEruptionShake * shakeIntensity * 1.5;
+            container.style.transform = `translate(${shakeX}px, ${shakeY}px)`;
+            coreEruptionShake *= 0.96;
+        } else {
+            container.style.transform = '';
+        }
+        
+        player.lookAt(camera.position.x, player.position.y, camera.position.z);
+        let cp = new THREE.Vector3(player.position.x + camDist*Math.sin(camRot.theta)*Math.cos(camRot.phi), player.position.y+2+camDist*Math.sin(camRot.phi), player.position.z + camDist*Math.cos(camRot.theta)*Math.cos(camRot.phi));
+        camera.position.lerp(cp, 0.2 * delta * 10);
+        camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+    }
+    
+    animate(performance.now()); 
+    updateDisplay();
+</script>
+</body>
+</html>
